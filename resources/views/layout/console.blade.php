@@ -85,16 +85,11 @@
 }
 
 .table-responsive {
-    overflow-x: visible !important;
-    width: 100%;
-}
-
-@media (max-width:1024px){
-    .table-responsive {
     overflow-x: auto !important;
     width: 100%;
 }
 
+@media (max-width:1024px){
 .card-body{
     padding: 0;
 }
@@ -111,8 +106,7 @@
 }
 
 .adminfooter{
-    position: fixed;
-    bottom: 0;
+    position: static;
     width: 100%;
 }
 

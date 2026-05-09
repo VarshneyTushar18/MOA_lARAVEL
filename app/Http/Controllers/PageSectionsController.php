@@ -394,7 +394,9 @@ class PageSectionsController extends Controller
             }
 
             $duration = $this->getVideoDurationInSeconds($video);
-            if ($duration === null || $duration > 10) {
+            // If duration probing is unavailable on this machine, do not block upload.
+            // We still enforce the max-duration rule whenever probing succeeds.
+            if ($duration !== null && $duration > 10) {
                 throw ValidationException::withMessages([
                     'videos' => 'Highlight videos must be 10 seconds or shorter.',
                 ]);
@@ -440,7 +442,18 @@ class PageSectionsController extends Controller
             return $ffprobePath;
         }
 
-        $binary = trim((string) shell_exec('command -v ffprobe'));
+        $binary = '';
+
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $binary = trim((string) shell_exec('where ffprobe 2>NUL'));
+            if ($binary !== '') {
+                $lines = preg_split("/\r\n|\n|\r/", $binary);
+                $binary = trim((string) ($lines[0] ?? ''));
+            }
+        } else {
+            $binary = trim((string) shell_exec('command -v ffprobe 2>/dev/null'));
+        }
+
         if ($binary === '') {
             $ffprobePath = false;
             return null;

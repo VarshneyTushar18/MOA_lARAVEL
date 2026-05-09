@@ -17,6 +17,7 @@ class PatientController extends Controller
             'name' => 'required|string|max:255',
             'adhaar_no' => ['required', 'digits:16'], // ✅ exactly 16 digits
             'uhid_no' => 'required|string|max:255',
+            'file_no' => 'nullable|string|max:100',
             // Add any other validations you want
         ], [
             'adhaar_no.digits' => 'Aadhaar number must be exactly 16 digits.', // custom error message
@@ -72,6 +73,29 @@ class PatientController extends Controller
     return Excel::download(
         new PatientsExport($request->uhid_no),
         $request->uhid_no . '_opd.xlsx'
+    );
+}
+
+public function downloadOpdByLast4AndFileNo(Request $request)
+{
+    $validated = $request->validate([
+        'uhid_last4' => ['required', 'digits:4'],
+        'file_no' => ['required', 'string', 'max:100'],
+    ]);
+
+    $patient = Patient::where('file_no', $validated['file_no'])
+        ->whereRaw('RIGHT(uhid_no, 4) = ?', [$validated['uhid_last4']])
+        ->first();
+
+    if (!$patient) {
+        return back()->withErrors([
+            'uhid_last4' => 'No patient record found for provided last 4 UHID and File No.',
+        ])->withInput();
+    }
+
+    return Excel::download(
+        new PatientsExport($patient->uhid_no),
+        $patient->uhid_no . '_opd.xlsx'
     );
 }
 }

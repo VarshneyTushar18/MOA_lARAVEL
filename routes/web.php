@@ -69,14 +69,16 @@ Route::get('/performance_report', function () {
 
 Route::get('/patient-search', [PatientController::class, 'search'])->name('patient.search');
 
-Route::get('/console/contacts/list', [ContactController::class, 'index']);
+Route::get('/console/contacts/list', [ContactController::class, 'index'])->middleware('auth');
 Route::post('/contact-submit', [ContactController::class, 'store'])
      ->name('contact.store');
 
-Route::get('/console/logout', [ConsoleController::class, 'logout'])->middleware('auth');
-Route::get('/console/login', [ConsoleController::class, 'loginForm'])->middleware('guest');
-Route::post('/console/login', [ConsoleController::class, 'login'])->middleware('guest');
-Route::get('/console/dashboard', [ConsoleController::class, 'dashboard'])->middleware('auth');
+Route::get('/console/logout', [ConsoleController::class, 'logout'])->middleware('auth')->name('console.logout');
+Route::redirect('/console', '/console/login');
+Route::redirect('/console.login', '/console/login');
+Route::get('/console/login', [ConsoleController::class, 'loginForm'])->middleware('guest')->name('console.login');
+Route::post('/console/login', [ConsoleController::class, 'login'])->middleware('guest')->name('console.login.submit');
+Route::get('/console/dashboard', [ConsoleController::class, 'dashboard'])->middleware('auth')->name('console.dashboard');
 
 // Console: pages and page sections
 Route::get('/console/pages/list', [App\Http\Controllers\PagesController::class, 'list'])->middleware('auth');
@@ -99,10 +101,11 @@ Route::get('/console/pages/sections/image/delete/{image}', [PageSectionsControll
 Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');
 
 // Admin console list
-Route::get('/console/patients/list', [PatientController::class, 'index']);
+Route::get('/console/patients/list', [PatientController::class, 'index'])->middleware('auth');
 
 // Download single patient by ID
 Route::get('/console/patients/{id}/download', [PatientController::class, 'download'])
+    ->middleware('auth')
     ->name('patients.download');
 
 Route::post('/upload-opd', [PatientController::class, 'uploadOpd'])
@@ -110,6 +113,8 @@ Route::post('/upload-opd', [PatientController::class, 'uploadOpd'])
 
 Route::get('/download-opd', [PatientController::class, 'downloadOpd'])
     ->name('download.opd');
+Route::get('/download-opd-by-last4-file', [PatientController::class, 'downloadOpdByLast4AndFileNo'])
+    ->name('download.opd.last4_file');
 
 
 Route::post('/cure/store', [CureController::class, 'store'])
@@ -134,10 +139,16 @@ Route::get('/idcard/download', [IdCardController::class, 'download'])
 
 //
 Route::post('/survey-submit', [SurveyResponseController::class, 'store'])->name('survey.submit');
+Route::get('/screening-performa', [SurveyResponseController::class, 'create'])->name('survey.form');
 
-Route::get('/console/survey-responses', [ConsoleSurveyResponseController::class, 'index'])->name('console.survey_responses.index');
+Route::get('/console/survey-responses', [ConsoleSurveyResponseController::class, 'index'])->middleware('auth')->name('console.survey_responses.index');
+Route::get('/console/survey-responses/export', [ConsoleSurveyResponseController::class, 'export'])->middleware('auth')->name('console.survey_responses.export');
+Route::get('/console/survey-responses/sample-file', [ConsoleSurveyResponseController::class, 'sampleFile'])->middleware('auth')->name('console.survey_responses.sample_file');
+Route::post('/console/survey-responses/export-selected', [ConsoleSurveyResponseController::class, 'exportSelected'])->middleware('auth')->name('console.survey_responses.export_selected');
+Route::get('/console/survey-responses/{surveyResponse}', [ConsoleSurveyResponseController::class, 'show'])->middleware('auth')->name('console.survey_responses.show');
+Route::delete('/console/survey-responses/{surveyResponse}', [ConsoleSurveyResponseController::class, 'destroy'])->middleware('auth')->name('console.survey_responses.destroy');
 
-Route::post('/console/survey-responses/import', [ConsoleSurveyResponseController::class, 'import'])->name('console.survey_responses.import');
+Route::post('/console/survey-responses/import', [ConsoleSurveyResponseController::class, 'import'])->middleware('auth')->name('console.survey_responses.import');
 
 // Dynamic page route - must be last so it doesn't collide with other routes
 Route::get('/{slug}', [PageController::class, 'show'])->where('slug', '[A-z0-9\-]+');

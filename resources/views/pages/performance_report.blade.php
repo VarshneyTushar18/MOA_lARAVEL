@@ -46,6 +46,15 @@
 @if($performance && $performance->media->where('type','pdf')->count())
 <section class="ntpcsection mt-5">
     <div class="container">
+        <div class="accordion" id="performanceAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="performanceHeadingMain">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#performanceCollapseMain" aria-expanded="true" aria-controls="performanceCollapseMain">
+                        {{ $performance->title ?? 'Performance Report' }}
+                    </button>
+                </h2>
+                <div id="performanceCollapseMain" class="accordion-collapse collapse show" aria-labelledby="performanceHeadingMain" data-bs-parent="#performanceAccordion">
+                    <div class="accordion-body">
 
         <div class="row g-4">
             @foreach($performance->media->where('type','pdf') as $pdf)
@@ -102,8 +111,14 @@
             @endforeach
         </div>
 
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 @endif
+
+@include('partials.page-faq')
 
 @endsection

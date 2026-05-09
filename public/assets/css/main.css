@@ -2070,3 +2070,61 @@ footer {
 .factsheet-highlight-modal .modal-body {
     padding: 1rem;
 }
+
+.faq-ui {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.faq-ui__head h2 {
+    margin-bottom: 18px;
+}
+
+.faq-ui__search-wrap {
+    max-width: 480px;
+    margin: 0 auto 20px;
+    position: relative;
+}
+
+.faq-ui__search {
+    border-radius: 999px;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    padding-right: 42px;
+}
+
+.faq-ui__search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8e8e8e;
+}
+
+.faq-ui__accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.faq-ui__item {
+    border: 1px solid #ebebeb !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    background: #fff;
+}
+
+.faq-ui__button {
+    background: #fff;
+    color: #1b1b1b;
+    font-weight: 600;
+    box-shadow: none !important;
+}
+
+.faq-ui__button::after {
+    background-size: 14px;
+}
+
+.faq-ui__body {
+    color: #4b4b4b;
+}

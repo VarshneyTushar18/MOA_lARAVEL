@@ -23,6 +23,9 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                if ($request->is('console') || $request->is('console/*') || $request->is('console.login')) {
+                    return redirect('/console/dashboard');
+                }
                 return redirect(RouteServiceProvider::HOME);
             }
         }

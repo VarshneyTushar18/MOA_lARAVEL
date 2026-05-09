@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Page;
+use App\Models\Patient;
+use App\Models\SurveyResponse;
 
 class HomeController extends Controller
 {
@@ -14,7 +16,14 @@ class HomeController extends Controller
                     ->with('sections')
                     ->first();
 
-        return view('pages.home', compact('page'));
+        $liveStats = [
+            'total_patients' => Patient::count(),
+            'today_patients' => Patient::whereDate('created_at', now()->toDateString())->count(),
+            'total_surveys' => SurveyResponse::count(),
+            'today_surveys' => SurveyResponse::whereDate('created_at', now()->toDateString())->count(),
+        ];
+
+        return view('pages.home', compact('page', 'liveStats'));
     }
     public function aboutUs()
 {

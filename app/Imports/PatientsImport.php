@@ -30,6 +30,7 @@ class PatientsImport implements ToModel, WithHeadingRow, SkipsEmptyRows
             ? \Carbon\Carbon::instance(ExcelDate::excelToDateTimeObject($row['date']))->format('Y-m-d')
             : null,
         'uhid_no' => $row['uhid_no'] ?? null,
+        'file_no' => $row['file_no'] ?? null,
         'adhaar_no' => $adhaar,
         'name' => $row['name'],
         'age' => $row['age'] ?? null,

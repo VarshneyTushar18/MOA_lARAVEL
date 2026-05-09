@@ -7,6 +7,33 @@
     <!-- Title -->
     <h2 class="mb-4 fw-bold">Dashboard</h2>
 
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 text-center p-3">
+                <h6 class="text-muted mb-1">Total Patients</h6>
+                <h3 class="mb-0">{{ $stats['total_patients'] ?? 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 text-center p-3">
+                <h6 class="text-muted mb-1">Patients Today</h6>
+                <h3 class="mb-0">{{ $stats['today_patients'] ?? 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 text-center p-3">
+                <h6 class="text-muted mb-1">Total Surveys</h6>
+                <h3 class="mb-0">{{ $stats['total_surveys'] ?? 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 text-center p-3">
+                <h6 class="text-muted mb-1">Surveys Today</h6>
+                <h3 class="mb-0">{{ $stats['today_surveys'] ?? 0 }}</h3>
+            </div>
+        </div>
+    </div>
+
     <!-- Cards -->
     <div class="row g-4">
 

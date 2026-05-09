@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Patient;
+use App\Models\SurveyResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 
@@ -38,7 +40,14 @@ class ConsoleController extends Controller
 
     public function dashboard()
     {
-        return view('console.dashboard');
+        $stats = [
+            'total_patients' => Patient::count(),
+            'today_patients' => Patient::whereDate('created_at', now()->toDateString())->count(),
+            'total_surveys' => SurveyResponse::count(),
+            'today_surveys' => SurveyResponse::whereDate('created_at', now()->toDateString())->count(),
+        ];
+
+        return view('console.dashboard', compact('stats'));
     }
 
 }

@@ -14,6 +14,9 @@
     $rntcp = $grouped->get('rntcp', collect())->first();
     $roles = $grouped->get('roles', collect());
     $enrollYourself = $grouped->get('enroll_yourself', collect())->first();
+    $surveyFormPath = route('survey.form', [], false);
+    $surveyFormUrl = rtrim(config('app.url') ?: url('/'), '/') . $surveyFormPath;
+    $surveyQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($surveyFormUrl);
 
     if (!function_exists('resolveStorageImage')) {
         function resolveStorageImage($filename) {
@@ -364,44 +367,32 @@
 <section class="schemesection">
     <div class="container">
 
-        <div class="row">
-            <div class="col-lg-8">
+        <div class="row align-items-start">
+
+            {{-- Left Content --}}
+            <div class="col-lg-6">
                 <div class="section-heading">
                     <span>Screening Performa</span>
                     <h3>{{ $enrollYourself->title ?? 'Enroll Yourself' }}</h3>
                 </div>
-            </div>
-        </div>
 
-        <div class="row pt-4 align-items-center">
-
-            {{-- Description --}}
-            <div class="col-lg-6">
                 {!! $enrollYourself->description !!}
 
-                @if(!empty($enrollYourself->videos[0]))
                 <div class="btn-block mt-3">
-                    <a href="{{ $enrollYourself->videos[0] }}"
-                       target="_blank"
-                       class="primary-btn">
+                    <a href="{{ $surveyFormUrl }}" class="primary-btn">
                         Fill Survey Form
                         <i class="ri-arrow-right-up-line"></i>
                     </a>
                 </div>
-                @endif
             </div>
 
             {{-- QR Code --}}
-            <div class="col-lg-6 text-center">
-                @if($enrollYourself->image)
-                    @php $qrPath = resolveStorageImage($enrollYourself->image); @endphp
-                    @if($qrPath)
-                    <img src="{{ asset('storage/'.$qrPath) }}"
-                         class="img-fluid shadow rounded"
-                         style="max-width:300px;"
-                         alt="Survey QR Code">
-                    @endif
-                @endif
+            <div class="col-lg-6 d-flex flex-column align-items-center justify-content-start mt-0">
+                <h5 class="mb-2 mt-0">Scan Qr</h5>
+                <img src="{{ $surveyQrUrl }}"
+                     class="img-fluid shadow rounded"
+                     style="max-width:300px;"
+                     alt="Survey QR Code">
             </div>
 
         </div>

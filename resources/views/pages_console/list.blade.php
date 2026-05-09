@@ -15,7 +15,10 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Pages</h2>
-        <a href="/console/pages/add" class="btn btn-success">Add Page</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('console.dashboard') }}" class="btn btn-outline-secondary">Back</a>
+            <a href="/console/pages/add" class="btn btn-success">Add Page</a>
+        </div>
     </div>
 
     <!-- Card -->

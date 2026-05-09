@@ -36,13 +36,23 @@
 </section>
 
 
+<section class="ntpcsection mt-5">
+    <div class="container">
+        <div class="accordion" id="acsmIecAccordion">
+
 {{-- ============================= --}}
 {{-- 1️⃣ LAUNCH VIDEO --}}
 {{-- ============================= --}}
 @php $launch = getSection($grouped,'launch_video'); @endphp
 @if($launch)
-<section class="ntpcsection mt-5">
-    <div class="container">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="acsmHeadingLaunch">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapseLaunch" aria-expanded="true" aria-controls="acsmCollapseLaunch">
+            {{ $launch->title ?? 'Launch Video' }}
+        </button>
+    </h2>
+    <div id="acsmCollapseLaunch" class="accordion-collapse collapse show" aria-labelledby="acsmHeadingLaunch" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
         <div class="section-heading text-center mb-4">
             <h2>{{ $launch->title }}</h2>
         </div>
@@ -77,8 +87,9 @@
             @endforeach
 
         </div>
+        </div>
     </div>
-</section>
+</div>
 @endif
 
 
@@ -88,8 +99,14 @@
 {{-- ============================= --}}
 @php $documentaries = getSection($grouped,'documentaries'); @endphp
 @if($documentaries)
-<section class="ntpcsection mt-5">
-    <div class="container">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="acsmHeadingDoc">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapseDoc" aria-expanded="false" aria-controls="acsmCollapseDoc">
+            {{ $documentaries->title ?? 'ACSM / IEC - Documentaries' }}
+        </button>
+    </h2>
+    <div id="acsmCollapseDoc" class="accordion-collapse collapse" aria-labelledby="acsmHeadingDoc" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
         <div class="section-heading text-center mb-4">
             <h2>{{ $documentaries->title ?? 'ACSM / IEC - Documentaries' }}</h2>
         </div>
@@ -167,8 +184,9 @@
         </div>
         @endif
 
+        </div>
     </div>
-</section>
+</div>
 @endif
 
 
@@ -178,8 +196,14 @@
 {{-- ============================= --}}
 @php $audioVideo = getSection($grouped,'audio_video_clips'); @endphp
 @if($audioVideo)
-<section class="ntpcsection mt-5">
-    <div class="container">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="acsmHeadingAudioVideo">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapseAudioVideo" aria-expanded="false" aria-controls="acsmCollapseAudioVideo">
+            {{ $audioVideo->title ?? 'Audio Video Clips' }}
+        </button>
+    </h2>
+    <div id="acsmCollapseAudioVideo" class="accordion-collapse collapse" aria-labelledby="acsmHeadingAudioVideo" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
         <div class="section-heading text-center mb-4">
             <h2>{{ $audioVideo->title ?? 'Audio Video Clips' }}</h2>
         </div>
@@ -231,8 +255,9 @@
             @endforeach
 
         </div>
+        </div>
     </div>
-</section>
+</div>
 @endif
 
 
@@ -242,8 +267,14 @@
 {{-- ============================= --}}
 @php $enroll = getSection($grouped,'how_to_enroll'); @endphp
 @if($enroll)
-<section class="ntpcsection mt-5">
-    <div class="container">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="acsmHeadingEnroll">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapseEnroll" aria-expanded="false" aria-controls="acsmCollapseEnroll">
+            {{ $enroll->title ?? 'How to Enroll' }}
+        </button>
+    </h2>
+    <div id="acsmCollapseEnroll" class="accordion-collapse collapse" aria-labelledby="acsmHeadingEnroll" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
 
         <div class="section-heading text-center mb-4">
             <h2>{{ $enroll->title ?? 'How to Enroll' }}</h2>
@@ -272,8 +303,9 @@
 
         </div>
 
+        </div>
     </div>
-</section>
+</div>
 @endif
 
 
@@ -285,8 +317,14 @@
 @php $section = getSection($grouped,$imageKey); 
 @endphp 
 @if($section) 
-<section class="ntpcsection mt-5"> 
-    <div class="container"> 
+<div class="accordion-item"> 
+    <h2 class="accordion-header" id="acsmHeadingImage{{ $loop->index }}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapseImage{{ $loop->index }}" aria-expanded="false" aria-controls="acsmCollapseImage{{ $loop->index }}">
+            {{ $section->title }}
+        </button>
+    </h2>
+    <div id="acsmCollapseImage{{ $loop->index }}" class="accordion-collapse collapse" aria-labelledby="acsmHeadingImage{{ $loop->index }}" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
         <div class="section-heading text-center mb-4"> 
             <h2>{{ $section->title }}</h2> 
         </div> 
@@ -325,8 +363,9 @@
         @endforeach 
     </div> 
     @endif 
+        </div> 
+    </div>
 </div> 
-</section> 
 @endif 
 @endforeach
 
@@ -346,8 +385,14 @@
 @php $section = getSection($grouped,$pdfKey); @endphp
 
 @if($section && $section->media->where('type','pdf')->count())
-<section class="ntpcsection mt-5">
-    <div class="container">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="acsmHeadingPdf{{ $loop->index }}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#acsmCollapsePdf{{ $loop->index }}" aria-expanded="false" aria-controls="acsmCollapsePdf{{ $loop->index }}">
+            {{ $section->title }}
+        </button>
+    </h2>
+    <div id="acsmCollapsePdf{{ $loop->index }}" class="accordion-collapse collapse" aria-labelledby="acsmHeadingPdf{{ $loop->index }}" data-bs-parent="#acsmIecAccordion">
+        <div class="accordion-body">
 
         <div class="section-heading text-center mb-4">
             <h2>{{ $section->title }}</h2>
@@ -372,11 +417,18 @@
             @endforeach
         </div>
 
+        </div>
     </div>
-</section>
+</div>
 @endif
 
 @endforeach
 
+        </div>
+    </div>
+</section>
+
+
+@include('partials.page-faq')
 
 @endsection

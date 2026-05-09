@@ -74,7 +74,7 @@
                                     <a class="nav-link" href="/acsm_iec">ACSM / IEC</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="/performance_report">Performance report</a>
+                                    <a class="nav-link" href="/performance_report">Performance Report</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="/best_practices">Best Practices</a>

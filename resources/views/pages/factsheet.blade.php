@@ -11,6 +11,9 @@
     $mouSection           = $grouped->get('mou', collect())->first();
     $factsheetHighlightsParent = $grouped->get('factsheet_highlights', collect())->first();
     $factsheetHighlights = $factsheetHighlightsParent ? ($factsheetHighlightsParent->highlightItems ?? collect()) : collect();
+    $surveyFormPath = route('survey.form', [], false);
+    $surveyFormUrl = rtrim(config('app.url') ?: url('/'), '/') . $surveyFormPath;
+    $surveyQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($surveyFormUrl);
 
     if (!function_exists('resolveStorageImage')) {
         function resolveStorageImage($filename) {
@@ -54,13 +57,43 @@
                 if (is_string($urlPath) && $urlPath !== '') {
                     $normalizedUrlPath = factsheetNormalizePublicDiskPath($urlPath);
                     if ($normalizedUrlPath) {
-                        return $normalizedUrlPath;
+                        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+                        if ($disk->exists($normalizedUrlPath)) {
+                            return $normalizedUrlPath;
+                        }
                     }
                 }
                 return null;
             }
 
-            return resolveStorageImage($raw) ?: factsheetNormalizePublicDiskPath($raw);
+            return resolveStorageImage($raw);
+        }
+    }
+
+    if (!function_exists('factsheetHighlightPublicAssetUrl')) {
+        function factsheetHighlightPublicAssetUrl($highlight): ?string
+        {
+            $raw = $highlight->image ?? null;
+            if (!$raw || !is_string($raw)) {
+                return null;
+            }
+
+            $raw = str_replace('\\', '/', trim($raw));
+            if ($raw === '') {
+                return null;
+            }
+
+            if (filter_var($raw, FILTER_VALIDATE_URL)) {
+                return $raw;
+            }
+
+            $clean = ltrim($raw, '/');
+            if (strpos($clean, 'public/') === 0) {
+                $clean = substr($clean, strlen('public/'));
+            }
+
+            $absolute = public_path($clean);
+            return is_file($absolute) ? asset($clean) : null;
         }
     }
 
@@ -73,18 +106,15 @@
             }
             $raw = str_replace('\\', '/', trim($raw));
             if (filter_var($raw, FILTER_VALIDATE_URL)) {
-                $urlPath = parse_url($raw, PHP_URL_PATH);
-                if (!is_string($urlPath) || $urlPath === '') {
-                    return $raw;
-                }
-                $normalizedUrlPath = factsheetNormalizePublicDiskPath($urlPath);
-                return $normalizedUrlPath ? '/storage/' . ltrim($normalizedUrlPath, '/') : $raw;
+                return $raw;
             }
+
             $relative = factsheetResolveStorageRelativePath($raw);
-            if (!$relative) {
-                return null;
+            if ($relative) {
+                return '/storage/' . ltrim($relative, '/');
             }
-            return '/storage/' . ltrim($relative, '/');
+
+            return factsheetHighlightPublicAssetUrl($highlight);
         }
     }
 
@@ -95,10 +125,22 @@
             if (!$raw || !is_string($raw)) {
                 return null;
             }
+            $raw = str_replace('\\', '/', trim($raw));
+            if (filter_var($raw, FILTER_VALIDATE_URL)) {
+                return $raw;
+            }
+
             $relative = factsheetResolveStorageRelativePath($raw);
-            return $relative
-                ? '/storage/' . ltrim($relative, '/')
-                : null;
+            if ($relative) {
+                return '/storage/' . ltrim($relative, '/');
+            }
+
+            $clean = ltrim($raw, '/');
+            if (strpos($clean, 'public/') === 0) {
+                $clean = substr($clean, strlen('public/'));
+            }
+            $absolute = public_path($clean);
+            return is_file($absolute) ? asset($clean) : null;
         }
     }
 
@@ -146,21 +188,22 @@
 <section class="factsheet-highlights">
     <div class="container">
         <div class="factsheet-highlights__rail">
-            @foreach($factsheetHighlights as $highlight)
+            @foreach($factsheetHighlights as $index => $highlight)
                 @php
                     $imageUrl = factsheetHighlightImageUrl($highlight);
                     $youtubeId = !empty($highlight->youtube_url) ? extractYoutubeVideoId($highlight->youtube_url) : null;
                     $youtubeThumb = $youtubeId ? 'https://img.youtube.com/vi/'.$youtubeId.'/hqdefault.jpg' : null;
                     $fallbackImage = asset('assets/images/page-header-image.webp');
                     $coverImage = $youtubeThumb ?: ($imageUrl ?: $fallbackImage);
-                    $modalType = $youtubeId ? 'youtube' : (!empty($highlight->video_path) ? 'video' : ($imageUrl ? 'image' : null));
+                    $videoUrl = factsheetHighlightVideoUrl($highlight);
+                    $modalType = $youtubeId ? 'youtube' : ($videoUrl ? 'video' : ($imageUrl ? 'image' : null));
+                    $modalId = 'factsheetHighlightModal-' . ($page->id ?? 'page') . '-' . $index;
                 @endphp
 
                 @if($modalType)
                 <button class="factsheet-highlight-item"
                         type="button"
-                        data-bs-toggle="modal"
-                        data-bs-target="#factsheetHighlightModal-{{ $highlight->id }}">
+                        data-highlight-modal="{{ $modalId }}">
                     <span class="factsheet-highlight-item__thumb">
                         <img src="{{ $coverImage }}" alt="{{ $highlight->title ?? 'Highlight' }}">
                     </span>
@@ -172,14 +215,16 @@
     </div>
 </section>
 
-@foreach($factsheetHighlights as $highlight)
+@foreach($factsheetHighlights as $index => $highlight)
     @php
         $imageUrl = factsheetHighlightImageUrl($highlight);
         $youtubeId = !empty($highlight->youtube_url) ? extractYoutubeVideoId($highlight->youtube_url) : null;
-        $modalType = $youtubeId ? 'youtube' : (!empty($highlight->video_path) ? 'video' : ($imageUrl ? 'image' : null));
+        $videoUrl = factsheetHighlightVideoUrl($highlight);
+        $modalType = $youtubeId ? 'youtube' : ($videoUrl ? 'video' : ($imageUrl ? 'image' : null));
+        $modalId = 'factsheetHighlightModal-' . ($page->id ?? 'page') . '-' . $index;
     @endphp
     @if($modalType)
-    <div class="modal fade factsheet-highlight-modal" id="factsheetHighlightModal-{{ $highlight->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal fade factsheet-highlight-modal" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -195,11 +240,14 @@
                         </div>
                     @elseif($modalType === 'video')
                         <video controls class="w-100 rounded">
-                            <source src="{{ factsheetHighlightVideoUrl($highlight) }}">
+                            <source src="{{ $videoUrl }}">
                             Your browser does not support video playback.
                         </video>
                     @elseif($modalType === 'image')
-                        <img src="{{ $imageUrl }}" class="img-fluid rounded" alt="{{ $highlight->title ?? 'Highlight image' }}">
+                        <img src="{{ $imageUrl }}"
+                             class="img-fluid rounded"
+                             alt="{{ $highlight->title ?? 'Highlight image' }}"
+                             onerror="this.onerror=null;this.src='{{ asset('assets/images/page-header-image.webp') }}';">
                     @endif
 
                     @if(!empty($highlight->description))
@@ -212,6 +260,7 @@
     @endif
 @endforeach
 @endif
+
 
 
 {{-- ================= TRAINING / WORKSHOP SECTION ================= --}}
@@ -324,7 +373,7 @@
             </div>
         </div>
 
-        <div class="row pt-4 align-items-center">
+        <div class="row pt-4 align-items-start">
 
             {{-- Description --}}
             <div class="col-lg-6">
@@ -392,19 +441,14 @@
 <section class="schemesection">
     <div class="container">
 
-        <div class="row">
-            <div class="col-lg-8">
+        <div class="row align-items-start">
+
+            {{-- Left Content --}}
+            <div class="col-lg-6">
                 <div class="section-heading">
                     <span>Survey Information</span>
                     <h3>{{ $surveyData->title ?? 'Survey Data' }}</h3>
                 </div>
-            </div>
-        </div>
-
-        <div class="row pt-4 align-items-center">
-
-            {{-- Description --}}
-            <div class="col-lg-6">
                 {!! $surveyData->description !!}
                 
                 @if(!empty($surveyData->videos[0]))
@@ -416,7 +460,7 @@
                         <i class="ri-arrow-right-up-line"></i>
                     </a> -->
 
-<a href="https://docs.google.com/forms/d/e/1FAIpQLSeqoSaOscrrpXqqcqoFY58_MaY4o6-9DEdzP8qs0A9ak-Ujew/viewform"
+<a href="{{ $surveyFormUrl }}"
    target="_blank"
    class="primary-btn">
     Fill Survey Form
@@ -428,18 +472,19 @@
             </div>
 
             {{-- QR Code --}}
-            <div class="col-lg-6 text-center">
+            <div class="col-lg-6 d-flex flex-column align-items-center  justify-content-start mt-0">
                 @if($surveyData->image)
                     @php $qrPath = resolveStorageImage($surveyData->image); @endphp
                     @if($qrPath)
+                        <h5 class="mb-2 mt-0 text-center">Scan QR Code</h5>
                     <!-- <img src="{{ asset('storage/'.$qrPath) }}"
                          class="img-fluid shadow rounded"
                          style="max-width:300px;"
                          alt="Survey QR Code"> -->
-                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://docs.google.com/forms/d/e/1FAIpQLSeqoSaOscrrpXqqcqoFY58_MaY4o6-9DEdzP8qs0A9ak-Ujew/viewform"
-     class="img-fluid shadow rounded"
-     style="max-width:300px;"
-     alt="Survey QR Code">
+                         <img src="{{ $surveyQrUrl }}"
+                              class="img-fluid shadow rounded"
+                              style="max-width:300px;"
+                              alt="Survey QR Code">
                     @endif
                 @endif
             </div>
@@ -471,6 +516,16 @@ var swiper = new Swiper(".mySwiper", {
 
 const lightbox = GLightbox({
     selector: ".glightbox"
+});
+
+document.querySelectorAll('[data-highlight-modal]').forEach(function (trigger) {
+    trigger.addEventListener('click', function () {
+        var modalId = trigger.getAttribute('data-highlight-modal');
+        if (!modalId) return;
+        var modalEl = document.getElementById(modalId);
+        if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
 });
 </script>
 @endpush

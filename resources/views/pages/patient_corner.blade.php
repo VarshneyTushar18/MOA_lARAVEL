@@ -80,6 +80,16 @@
                     </div>
                 @endif
 
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
 
                 {{-- Excel Upload --}}
                 {{-- ================= OPD EXCEL SECTION ================= --}}
@@ -128,6 +138,35 @@
                     </form>
                 </div>
 
+                <div class="card p-4 mt-3">
+                    <h4>Download OPD Record by Last 4 UHID + File No.</h4>
+                    <form action="{{ route('download.opd.last4_file') }}" method="GET">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <input type="text"
+                                       name="uhid_last4"
+                                       class="form-control"
+                                       maxlength="4"
+                                       pattern="\d{4}"
+                                       placeholder="Enter Last 4 UHID digits"
+                                       required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text"
+                                       name="file_no"
+                                       class="form-control"
+                                       placeholder="Enter File Number"
+                                       required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary">
+                                    Download OPD Record
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
 
                 {{-- Manual Entry Form --}}
                 <form action="{{ route('patients.store') }}" method="POST">
@@ -143,6 +182,11 @@
                         <div class="col-md-4 mb-3">
                             <label>UHID No.</label>
                             <input type="text" name="uhid_no" class="form-control" value="{{ old('uhid_no') }}">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label>File No.</label>
+                            <input type="text" name="file_no" class="form-control" value="{{ old('file_no') }}">
                         </div>
 
                         <div class="col-md-4 mb-3">

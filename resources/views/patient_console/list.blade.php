@@ -14,6 +14,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">Patient Submissions</h2>
+        <a href="{{ route('console.dashboard') }}" class="btn btn-outline-secondary">Back</a>
     </div>
 
     <!-- Card -->
