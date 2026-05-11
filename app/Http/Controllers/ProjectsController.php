@@ -30,11 +30,11 @@ class ProjectsController extends Controller
     {
 
         $attributes = request()->validate([
-            'title' => 'required',
-            'slug' => 'required|unique:projects|regex:/^[A-z\-]+$/',
-            'url' => 'nullable|url',
-            'content' => 'required',
-            'type_id' => 'required',
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:projects|regex:/^[A-z\-]+$/',
+            'url' => 'nullable|url|max:2048',
+            'content' => 'required|string',
+            'type_id' => 'required|exists:types,id',
         ]);
 
         $project = new Project();
@@ -62,15 +62,17 @@ class ProjectsController extends Controller
     {
 
         $attributes = request()->validate([
-            'title' => 'required',
+            'title' => 'required|string|max:255',
             'slug' => [
                 'required',
+                'string',
+                'max:255',
                 Rule::unique('projects')->ignore($project->id),
                 'regex:/^[A-z\-]+$/',
             ],
-            'url' => 'nullable|url',
-            'content' => 'required',
-            'type_id' => 'required',
+            'url' => 'nullable|url|max:2048',
+            'content' => 'required|string',
+            'type_id' => 'required|exists:types,id',
         ]);
 
         $project->title = $attributes['title'];
@@ -109,7 +111,7 @@ class ProjectsController extends Controller
     {
 
         $attributes = request()->validate([
-            'image' => 'required|image',
+            'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
         ]);
 
         if($project->image)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use App\Models\Patient;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\PatientsExport;
@@ -13,14 +14,20 @@ class PatientController extends Controller
     // Save patient data
     public function store(Request $request)
     {
+        $request->merge([
+            'adhaar_no' => preg_replace('/\D/', '', (string) $request->input('adhaar_no', '')),
+            'age' => $request->filled('age') ? $request->input('age') : null,
+        ]);
+
         $request->validate([
-            'name' => 'required|string|max:255',
-            'adhaar_no' => ['required', 'digits:16'], // ✅ exactly 16 digits
+            'name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\p{L}\p{M}\s.\'\-]+$/u'],
+            'adhaar_no' => ['required', 'digits:12'],
             'uhid_no' => 'required|string|max:255',
             'file_no' => 'nullable|string|max:100',
-            // Add any other validations you want
+            'age' => 'nullable|integer|min:0|max:120',
         ], [
-            'adhaar_no.digits' => 'Aadhaar number must be exactly 16 digits.', // custom error message
+            'adhaar_no.digits' => 'Aadhaar number must be exactly 12 digits.',
+            'name.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
         ]);
 
         Patient::create($request->all());
@@ -37,13 +44,39 @@ class PatientController extends Controller
 
     public function search(Request $request)
     {
-        $query = $request->q;
+        if (! $request->has('q')) {
+            $patients = Patient::query()->whereRaw('0 = 1')->paginate(20)->withQueryString();
 
-        $patients = Patient::where(function($q) use ($query) {
-            $q->where('name', 'LIKE', "%$query%")
-            ->orWhere('uhid_no', 'LIKE', "%$query%")
-            ->orWhere('adhaar_no', 'LIKE', "%$query%")
-            ->orWhere('contact_details', 'LIKE', "%$query%");
+            return view('pages.patient_search', compact('patients'));
+        }
+
+        $trimmed = trim((string) $request->input('q'));
+
+        if ($trimmed === '') {
+            return redirect()->route('patient.search')->withErrors([
+                'q' => 'Please enter a search term.',
+            ]);
+        }
+
+        $request->merge(['q' => $trimmed]);
+
+        $validator = Validator::make(
+            ['q' => $trimmed],
+            ['q' => ['required', 'string', 'min:2', 'max:255']],
+            ['q.min' => 'Please enter at least 2 characters to search.']
+        );
+
+        if ($validator->fails()) {
+            return redirect()->route('patient.search')->withErrors($validator)->withInput();
+        }
+
+        $query = $validator->validated()['q'];
+
+        $patients = Patient::where(function ($q) use ($query) {
+            $q->where('name', 'LIKE', "%{$query}%")
+            ->orWhere('uhid_no', 'LIKE', "%{$query}%")
+            ->orWhere('adhaar_no', 'LIKE', "%{$query}%")
+            ->orWhere('contact_details', 'LIKE', "%{$query}%");
         })
         ->paginate(20)
         ->withQueryString();
@@ -59,22 +92,34 @@ class PatientController extends Controller
 }
     public function uploadOpd(Request $request)
     {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+        ], [
+            'file.mimes' => 'Upload a spreadsheet (.xlsx, .xls, or .csv).',
+        ]);
 
         Excel::import(new PatientsImport, $request->file('file'));
 
-        return back()->with('success','Excel Uploaded Successfully');
+        return back()->with('success', 'Excel Uploaded Successfully');
     }
-    public function downloadOpd(Request $request)
-{
-    $request->validate([
-        'uhid_no' => 'required'
-    ]);
 
-    return Excel::download(
-        new PatientsExport($request->uhid_no),
-        $request->uhid_no . '_opd.xlsx'
-    );
-}
+    public function downloadOpd(Request $request)
+    {
+        $request->merge([
+            'uhid_no' => strtoupper(trim((string) $request->input('uhid_no'))),
+        ]);
+
+        $request->validate([
+            'uhid_no' => ['required', 'string', 'max:64', 'regex:/^LTBI\d{1,12}$/'],
+        ], [
+            'uhid_no.regex' => 'UHID must look like LTBI00035 (LTBI followed by digits).',
+        ]);
+
+        return Excel::download(
+            new PatientsExport($request->uhid_no),
+            $request->uhid_no . '_opd.xlsx'
+        );
+    }
 
 public function downloadOpdByLast4AndFileNo(Request $request)
 {

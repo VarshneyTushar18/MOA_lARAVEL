@@ -26,7 +26,9 @@ class SurveyResponseController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:csv,xlsx,xls',
+            'file' => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:15360'],
+        ], [
+            'file.max' => 'The import file may not be larger than 15 MB.',
         ]);
 
         try {

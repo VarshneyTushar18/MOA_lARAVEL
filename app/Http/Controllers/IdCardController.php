@@ -10,17 +10,18 @@ class IdCardController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
-            'id_number' => 'required',
-            'file' => 'required|mimes:pdf,jpg,jpeg|max:2048',
+        $request->merge([
+            'id_number' => strtoupper(trim((string) $request->input('id_number'))),
         ]);
 
-        $idNumber = strtoupper($request->id_number);
+        $validated = $request->validate([
+            'id_number' => ['required', 'string', 'regex:/^ID\d{4}$/'],
+            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg', 'max:2048'],
+        ], [
+            'id_number.regex' => 'ID must look like ID0001 (ID + 4 digits).',
+        ]);
 
-        // Validate format (ID0001)
-        if (!preg_match('/^ID\d{4}$/', $idNumber)) {
-            return back()->withErrors('Invalid ID format. Example: ID0001');
-        }
+        $idNumber = $validated['id_number'];
 
         // Store file
         $file = $request->file('file');
@@ -37,14 +38,22 @@ class IdCardController extends Controller
 
     public function download(Request $request)
     {
-        $request->validate([
-            'id_number' => 'required'
+        $request->merge([
+            'id_number' => strtoupper(trim((string) $request->input('id_number'))),
         ]);
 
-        $record = IdCard::where('id_number', strtoupper($request->id_number))->first();
+        $request->validate([
+            'id_number' => ['required', 'string', 'regex:/^ID\d{4}$/'],
+        ], [
+            'id_number.regex' => 'ID must look like ID0001 (ID + 4 digits).',
+        ]);
+
+        $record = IdCard::where('id_number', $request->id_number)->first();
 
         if (!$record) {
-            return back()->withErrors('ID Card not found.');
+            return back()->withErrors([
+                'id_number' => 'ID card file not found for this number.',
+            ]);
         }
 
         return Storage::download($record->file_path);

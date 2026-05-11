@@ -24,8 +24,8 @@ class ConsoleController extends Controller
     public function login()
     {
         $attributes = request()->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|max:255',
         ]);
 
         if(auth()->attempt($attributes))

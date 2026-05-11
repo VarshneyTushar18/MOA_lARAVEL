@@ -20,6 +20,10 @@
 <section class="patient-search-section py-5">
     <div class="container">
 
+        @if($errors->has('q'))
+            <div class="alert alert-danger">{{ $errors->first('q') }}</div>
+        @endif
+
         @if(request('q'))
             <h4 class="mb-4">Search Result for: <strong>{{ request('q') }}</strong></h4>
         @endif

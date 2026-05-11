@@ -30,10 +30,10 @@ class UsersController extends Controller
     {
 
         $attributes = request()->validate([
-            'first' => 'required',
-            'last' => 'required',
-            'email' => 'required|email|unique:users',
-            'password' => 'required',
+            'first' => 'required|string|max:255',
+            'last' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users',
+            'password' => 'required|string|min:8|max:255',
         ]);
 
         $user = new User();
@@ -61,14 +61,15 @@ class UsersController extends Controller
     {
 
         $attributes = request()->validate([
-            'first' => 'required',
-            'last' => 'required',
+            'first' => 'required|string|max:255',
+            'last' => 'required|string|max:255',
             'email' => [
                 'required',
                 'email',
+                'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
-            'password' => 'nullable',
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
         ]);
 
         $user->first = $attributes['first'];

@@ -23,6 +23,16 @@
 <section class="ntpcsection">
     <div class="container">
 
+        @if($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         {{-- ================= TABS NAVIGATION ================= --}}
         <ul class="nav nav-tabs mb-4" id="patientTabs" role="tablist">
 
@@ -80,16 +90,6 @@
                     </div>
                 @endif
 
-                @if($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
 
                 {{-- Excel Upload --}}
                 {{-- ================= OPD EXCEL SECTION ================= --}}
@@ -101,7 +101,7 @@
                         @csrf
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <input type="file" name="file" class="form-control" required>
+                                <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
                             </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-success">
@@ -124,7 +124,11 @@
                                 <input type="text"
                                     name="uhid_no"
                                     class="form-control"
+                                    value="{{ old('uhid_no') }}"
                                     placeholder="Enter LTBI Number (Example: LTBI00035)"
+                                    maxlength="64"
+                                    pattern="[Ll][Tt][Bb][Ii]\d{1,12}"
+                                    title="Format: LTBI followed by digits (e.g. LTBI00035)"
                                     required>
                             </div>
 
@@ -192,18 +196,18 @@
                         <div class="col-md-4 mb-3">
                             <label>Adhaar No.</label>
                             <input type="text" name="adhaar_no" class="form-control"
-       value="{{ old('adhaar_no') }}" maxlength="16" pattern="\d{16}"
-       title="Aadhaar number must be exactly 16 digits" required>
+                                value="{{ old('adhaar_no') }}" maxlength="14" pattern="\d{4}[\s\-]?\d{4}[\s\-]?\d{4}|\d{12}"
+                                title="Aadhaar number must be exactly 12 digits (optional spaces or hyphens between groups)" required inputmode="numeric" autocomplete="off">
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label>Name</label>
-                            <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
+                            <input type="text" name="name" class="form-control" value="{{ old('name') }}" required minlength="2" maxlength="255" autocomplete="name">
                         </div>
 
                         <div class="col-md-2 mb-3">
                             <label>Age</label>
-                            <input type="number" name="age" class="form-control" value="{{ old('age') }}">
+                            <input type="number" name="age" class="form-control" value="{{ old('age') }}" min="0" max="120" step="1" inputmode="numeric">
                         </div>
 
                         <div class="col-md-2 mb-3">
@@ -284,7 +288,13 @@
                             <div class="col-md-4 mb-3">
                                 <label>LTBI Number</label>
                                 <input type="text" name="ltbi_no" class="form-control"
-                                    placeholder="Example: 00035" required>
+                                    value="{{ old('ltbi_no') }}"
+                                    placeholder="Example: 00035"
+                                    inputmode="numeric"
+                                    maxlength="12"
+                                    pattern="\d{1,12}"
+                                    title="Numeric only, up to 12 digits"
+                                    required>
                             </div>
 
                             {{-- Type Selection --}}
@@ -292,8 +302,8 @@
                                 <label>Select Type</label>
                                 <select name="type" class="form-control" required>
                                     <option value="">Select</option>
-                                    <option value="cc">CC Number</option>
-                                    <option value="tr">TR Number</option>
+                                    <option value="cc" @selected(old('type') === 'cc')>CC Number</option>
+                                    <option value="tr" @selected(old('type') === 'tr')>TR Number</option>
                                 </select>
                             </div>
 
@@ -301,14 +311,24 @@
                             <div class="col-md-4 mb-3">
                                 <label>CC Number (If Selected)</label>
                                 <input type="text" name="cc_no" class="form-control"
-                                    placeholder="Example: 00049">
+                                    value="{{ old('cc_no') }}"
+                                    placeholder="Example: 00049"
+                                    inputmode="numeric"
+                                    maxlength="12"
+                                    pattern="\d{1,12}"
+                                    title="Numeric only">
                             </div>
 
                             {{-- TR Number --}}
                             <div class="col-md-4 mb-3">
                                 <label>TR Number (If Selected)</label>
                                 <input type="text" name="tr_no" class="form-control"
-                                    placeholder="Example: 00047">
+                                    value="{{ old('tr_no') }}"
+                                    placeholder="Example: 00047"
+                                    inputmode="numeric"
+                                    maxlength="12"
+                                    pattern="\d{1,12}"
+                                    title="Numeric only">
                             </div>
 
                             {{-- File Upload --}}
@@ -340,7 +360,12 @@
                                 <input type="text"
                                     name="access_code"
                                     class="form-control"
+                                    value="{{ old('access_code') }}"
                                     placeholder="Enter Access Code (Example: 0035049)"
+                                    inputmode="numeric"
+                                    maxlength="7"
+                                    pattern="\d{7}"
+                                    title="Exactly 7 digits"
                                     required>
                             </div>
 
@@ -390,7 +415,11 @@
                                 <label>LTBIRS Number</label>
                                 <input type="text" name="ltbirs_no"
                                     class="form-control"
+                                    value="{{ old('ltbirs_no') }}"
                                     placeholder="Example: LTBIRS0001"
+                                    maxlength="10"
+                                    pattern="[Ll][Tt][Bb][Ii][Rr][Ss]\d{4}"
+                                    title="LTBIRS + 4 digits (e.g. LTBIRS0001)"
                                     required>
                             </div>
 
@@ -423,7 +452,11 @@
                                 <input type="text"
                                     name="ltbirs_no"
                                     class="form-control"
+                                    value="{{ old('ltbirs_no') }}"
                                     placeholder="Enter LTBIRS Number"
+                                    maxlength="10"
+                                    pattern="[Ll][Tt][Bb][Ii][Rr][Ss]\d{4}"
+                                    title="LTBIRS + 4 digits (e.g. LTBIRS0001)"
                                     required>
                             </div>
 
@@ -474,7 +507,11 @@
                                 <input type="text"
                                     name="id_number"
                                     class="form-control"
+                                    value="{{ old('id_number') }}"
                                     placeholder="Example: ID0001"
+                                    maxlength="6"
+                                    pattern="[Ii][Dd]\d{4}"
+                                    title="ID + 4 digits (e.g. ID0001)"
                                     required>
                             </div>
 
@@ -508,7 +545,11 @@
                                 <input type="text"
                                     name="id_number"
                                     class="form-control"
+                                    value="{{ old('id_number') }}"
                                     placeholder="Enter ID Number (Example: ID0001)"
+                                    maxlength="6"
+                                    pattern="[Ii][Dd]\d{4}"
+                                    title="ID + 4 digits (e.g. ID0001)"
                                     required>
                             </div>
 

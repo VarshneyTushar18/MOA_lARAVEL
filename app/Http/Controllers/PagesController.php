@@ -23,8 +23,8 @@ class PagesController extends Controller
     public function add()
     {
         $attributes = request()->validate([
-            'title' => 'required',
-            'slug' => 'required|unique:pages|regex:/^[A-z0-9\-]+$/',
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:pages|regex:/^[A-z0-9\-]+$/',
         ]);
 
         $page = new Page();
@@ -45,9 +45,11 @@ class PagesController extends Controller
     public function edit(Page $page)
     {
         $attributes = request()->validate([
-            'title' => 'required',
+            'title' => 'required|string|max:255',
             'slug' => [
                 'required',
+                'string',
+                'max:255',
                 Rule::unique('pages')->ignore($page->id),
                 'regex:/^[A-z0-9\-]+$/',
             ],

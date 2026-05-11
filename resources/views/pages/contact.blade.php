@@ -86,7 +86,10 @@
                                    name="fname"
                                    class="form-control"
                                    placeholder="Full Name"
-                                   value="{{ old('fname') }}">
+                                   minlength="2"
+                                   maxlength="255"
+                                   value="{{ old('fname') }}"
+                                   required>
                             @error('fname')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -97,7 +100,9 @@
                                    name="email"
                                    class="form-control"
                                    placeholder="Email Address"
-                                   value="{{ old('email') }}">
+                                   maxlength="255"
+                                   value="{{ old('email') }}"
+                                   required>
                             @error('email')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -107,7 +112,10 @@
                             <textarea name="message"
                                       rows="5"
                                       class="form-control"
-                                      placeholder="Type Your Message">{{ old('message') }}</textarea>
+                                      placeholder="Type Your Message"
+                                      minlength="10"
+                                      maxlength="5000"
+                                      required>{{ old('message') }}</textarea>
                             @error('message')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror

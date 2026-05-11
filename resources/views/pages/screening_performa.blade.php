@@ -34,8 +34,8 @@
                 <h4 class="mb-3">Basic Details / बुनियादी विवरण</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label>NAME (नाम)</label>
-                        <input type="text" name="name" class="form-control" value="{{ old('name') }}">
+                        <label>NAME (नाम) <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ old('name') }}" required minlength="2" maxlength="255" autocomplete="name">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label>CONTACT DETAILS (संपर्क विवरण) <span class="text-danger">*</span></label>
@@ -55,11 +55,12 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label>AGE (आयु)</label>
-                        <input type="number" name="age" class="form-control" value="{{ old('age') }}">
+                        <input type="number" name="age" class="form-control" value="{{ old('age') }}" min="0" max="120" step="1" inputmode="numeric">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label>REGISTRATION (UHID NUMBER / SCREENING NUMBER / AADHAR NUMBER) (पंजीकरण संख्या (विशिष्ट स्वास्थ्य पहचान नंबर) / स्क्रीनिंग नंबर / आधार नंबर) <span class="text-danger">*</span></label>
-                        <input type="text" name="registration_number" class="form-control" value="{{ old('registration_number') }}" required>
+                        <input type="text" name="registration_number" class="form-control" value="{{ old('registration_number') }}" required maxlength="255" inputmode="text" aria-describedby="registration_number_hint">
+                        <small id="registration_number_hint" class="form-text text-muted">Aadhaar must be exactly 12 digits (spaces optional). Other IDs may include letters as printed on the card.</small>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label>DATE (तिथि)</label>

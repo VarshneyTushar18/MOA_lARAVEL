@@ -56,7 +56,7 @@
         <form method="POST" action="{{ route('console.survey_responses.import') }}" enctype="multipart/form-data">
             @csrf
 
-            <input type="file" name="file" class="form-control mb-3" required>
+            <input type="file" name="file" class="form-control mb-3" accept=".csv,.xlsx,.xls" required>
 
             <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary">

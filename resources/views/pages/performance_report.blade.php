@@ -4,16 +4,7 @@
 
 @php
     $grouped = $page->sections->groupBy('section_key');
-
-    function getSection($grouped, $key) {
-        return $grouped->get($key, collect())->first();
-    }
-
-    function resolveStoragePath($path) {
-        if (!$path) return null;
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
-        return $disk->exists($path) ? $path : null;
-    }
+    $reportSections = $page->sections->sortBy('sort_order')->values();
 @endphp
 
 
@@ -41,41 +32,65 @@
 {{-- ============================= --}}
 {{-- PERFORMANCE REPORT --}}
 {{-- ============================= --}}
-@php $performance = getSection($grouped,'performance_report'); @endphp
-
-@if($performance && $performance->media->where('type','pdf')->count())
+@if($reportSections->count())
 <section class="ntpcsection mt-5">
     <div class="container">
         <div class="accordion" id="performanceAccordion">
+            @foreach($reportSections as $section)
+            @php
+                $pdfs = $section->media->where('type', 'pdf');
+                $hasImage = !empty($section->image) && \Illuminate\Support\Facades\Storage::disk('public')->exists($section->image);
+            @endphp
+            @continue(!$pdfs->count() && !$hasImage)
             <div class="accordion-item">
-                <h2 class="accordion-header" id="performanceHeadingMain">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#performanceCollapseMain" aria-expanded="true" aria-controls="performanceCollapseMain">
-                        {{ $performance->title ?? 'Performance Report' }}
+                <h2 class="accordion-header" id="performanceHeading{{ $section->id }}">
+                    <button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#performanceCollapse{{ $section->id }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="performanceCollapse{{ $section->id }}">
+                        {{ $section->title ?: 'Performance Report' }}
                     </button>
                 </h2>
-                <div id="performanceCollapseMain" class="accordion-collapse collapse show" aria-labelledby="performanceHeadingMain" data-bs-parent="#performanceAccordion">
+                <div id="performanceCollapse{{ $section->id }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}" aria-labelledby="performanceHeading{{ $section->id }}" data-bs-parent="#performanceAccordion">
                     <div class="accordion-body">
 
         <div class="row g-4">
-            @foreach($performance->media->where('type','pdf') as $pdf)
+            @if($hasImage)
+                <div class="col-md-4">
+                    <div class="card shadow-sm p-4 text-center h-100">
+                        @if($section->title)
+                            <h5 class="mb-2 fw-bold">{{ $section->title }}</h5>
+                        @endif
+                        @if($section->description)
+                            <p class="small text-muted mb-3">{!! nl2br(e($section->description)) !!}</p>
+                        @endif
+                        <img src="{{ asset('storage/'.$section->image) }}" class="img-fluid rounded mb-3" alt="{{ $section->title ?: 'Performance Report' }}">
+                        <a href="{{ asset('storage/'.$section->image) }}" target="_blank" class="btn btn-secondary btn-sm">View Image</a>
+                    </div>
+                </div>
+            @endif
 
-                @php $path = resolveStoragePath($pdf->file_path); @endphp
+            @foreach($pdfs as $pdf)
+
+                @php
+                    $path = null;
+                    if (!empty($pdf->file_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($pdf->file_path)) {
+                        $path = $pdf->file_path;
+                    }
+                @endphp
 
                 @if($path)
                 <div class="col-md-4">
                     <div class="card shadow-sm p-4 text-center h-100">
 
                         {{-- SECTION TITLE --}}
-                        @if($performance->title)
+                        @if($section->title)
                             <h5 class="mb-2 fw-bold">
-                                {{ $performance->title }}
+                                {{ $section->title }}
                             </h5>
                         @endif
 
                         {{-- SECTION DESCRIPTION --}}
-                        @if($performance->description)
+                        @if($section->description)
                             <p class="small text-muted mb-3">
-                                {!! nl2br(e($performance->description)) !!}
+                                {!! nl2br(e($section->description)) !!}
                             </p>
                         @endif
 
@@ -114,6 +129,7 @@
                     </div>
                 </div>
             </div>
+            @endforeach
         </div>
     </div>
 </section>

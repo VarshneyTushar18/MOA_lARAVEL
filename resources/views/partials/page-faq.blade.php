@@ -1,7 +1,11 @@
 @php
+    $groupedSections = isset($grouped)
+        ? $grouped
+        : (($page->sections ?? collect())->groupBy('section_key'));
+
     $faqKeys = ['faq', 'faqs', 'frequently_asked_questions'];
-    $faqSection = collect($faqKeys)->map(function ($key) use ($grouped) {
-        return getSection($grouped, $key);
+    $faqSection = collect($faqKeys)->map(function ($key) use ($groupedSections) {
+        return $groupedSections->get($key, collect())->first();
     })->first(function ($section) {
         return !is_null($section);
     });

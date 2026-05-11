@@ -10,17 +10,18 @@ class ResearchPatientController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
-            'ltbirs_no' => 'required',
-            'file' => 'required|mimes:pdf,jpg,jpeg|max:2048',
+        $request->merge([
+            'ltbirs_no' => strtoupper(trim((string) $request->input('ltbirs_no'))),
         ]);
 
-        $ltbirs = strtoupper($request->ltbirs_no);
+        $validated = $request->validate([
+            'ltbirs_no' => ['required', 'string', 'regex:/^LTBIRS\d{4}$/'],
+            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg', 'max:2048'],
+        ], [
+            'ltbirs_no.regex' => 'LTBIRS number must look like LTBIRS0001 (LTBIRS + 4 digits).',
+        ]);
 
-        // Validate format
-        if (!preg_match('/^LTBIRS\d{4}$/', $ltbirs)) {
-            return back()->withErrors('Invalid LTBIRS format. Example: LTBIRS0001');
-        }
+        $ltbirs = $validated['ltbirs_no'];
 
         // Store File
         $file = $request->file('file');
@@ -37,14 +38,22 @@ class ResearchPatientController extends Controller
 
     public function download(Request $request)
     {
-        $request->validate([
-            'ltbirs_no' => 'required'
+        $request->merge([
+            'ltbirs_no' => strtoupper(trim((string) $request->input('ltbirs_no'))),
         ]);
 
-        $record = ResearchPatient::where('ltbirs_no', strtoupper($request->ltbirs_no))->first();
+        $request->validate([
+            'ltbirs_no' => ['required', 'string', 'regex:/^LTBIRS\d{4}$/'],
+        ], [
+            'ltbirs_no.regex' => 'LTBIRS number must look like LTBIRS0001 (LTBIRS + 4 digits).',
+        ]);
+
+        $record = ResearchPatient::where('ltbirs_no', $request->ltbirs_no)->first();
 
         if (!$record) {
-            return back()->withErrors('Record not found.');
+            return back()->withErrors([
+                'ltbirs_no' => 'Record not found for this number.',
+            ]);
         }
 
         return Storage::download($record->file_path);

@@ -14,13 +14,27 @@ class SurveyResponseController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'age' => $request->filled('age') ? $request->input('age') : null,
+        ]);
+
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
+            'name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\p{L}\p{M}\s.\'\-]+$/u'],
             'address' => 'required|string|max:1000',
             'contact_details' => 'required|string|max:30',
             'gender' => 'nullable|in:Male,Female',
             'age' => 'nullable|integer|min:0|max:120',
-            'registration_number' => 'required|string|max:255',
+            'registration_number' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $compact = preg_replace('/[\s\-]/', '', (string) $value);
+                    if ($compact !== '' && ctype_digit($compact) && strlen($compact) !== 12) {
+                        $fail('If you enter only digits as registration, it must be exactly 12 digits (Aadhaar). For UHID or screening numbers that are shorter or longer, include letters or hyphens as on your card.');
+                    }
+                },
+            ],
             'survey_date' => 'nullable|date',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
@@ -65,6 +79,8 @@ class SurveyResponseController extends Controller
             'satisfied_with_information_provided' => 'nullable|in:Yes,No',
             'investigator_name_designation_affiliation_email' => 'required|string|max:1000',
             'principal_investigator' => 'nullable|string|max:255',
+        ], [
+            'name.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
         ]);
 
         $answers = $request->except([

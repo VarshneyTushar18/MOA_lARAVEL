@@ -9,9 +9,12 @@ class ContactController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'fname'   => 'required|string|max:255',
-            'email' => ['required', 'email', 'regex:/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/'],
-            'message' => 'required|string',
+            'fname' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\p{L}\p{M}\s.\'\-]+$/u'],
+            'email' => ['required', 'email', 'max:255'],
+            'message' => ['required', 'string', 'min:10', 'max:5000'],
+        ], [
+            'fname.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
+            'email.email' => 'Please enter a valid email address.',
         ]);
 
         Contact::create([

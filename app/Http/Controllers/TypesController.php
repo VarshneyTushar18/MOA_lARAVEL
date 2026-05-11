@@ -28,7 +28,7 @@ class TypesController extends Controller
     {
 
         $attributes = request()->validate([
-            'title' => 'required',
+            'title' => 'required|string|max:255',
         ]);
 
         $type = new Type();
@@ -50,7 +50,7 @@ class TypesController extends Controller
     {
 
         $attributes = request()->validate([
-            'title' => 'required',
+            'title' => 'required|string|max:255',
         ]);
 
         $type->title = $attributes['title'];

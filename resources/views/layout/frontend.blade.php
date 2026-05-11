@@ -42,7 +42,7 @@
                 <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
                     <div class="search-block">
                         <form action="{{ route('patient.search') }}" method="GET">
-                            <input type="text" name="q" placeholder="Search" value="{{ request('q') }}">
+                            <input type="text" name="q" placeholder="Search" minlength="2" maxlength="255" value="{{ old('q', request('q')) }}" title="At least 2 characters">
                             <button type="submit">
                                 <img src="{{ asset('assets/images/search.svg') }}" alt="Search">
                             </button>

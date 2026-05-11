@@ -44,6 +44,7 @@ class PageSectionsController extends Controller
             'images.*' => 'nullable|image',
             'pdfs.*' => 'nullable|file|mimes:pdf',
             'videos.*' => 'nullable|file|mimes:mp4,mov,avi',
+            'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
             'youtube_links.*' => 'nullable|url',
             'highlight_items' => 'nullable|array',
             'highlight_items.*.title' => 'nullable|string|max:255',

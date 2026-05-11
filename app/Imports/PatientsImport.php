@@ -17,12 +17,11 @@ class PatientsImport implements ToModel, WithHeadingRow, SkipsEmptyRows
         return null;
     }
 
-    // Normalize Aadhaar field
+    // Normalize Aadhaar field (Indian Aadhaar is 12 digits; CSV may use dashes/spaces)
     $adhaar = $row['adhaar_no'] ?? $row['adahar_no'] ?? null;
-
-    // Optional: only accept 16-digit numbers
-    if ($adhaar && !preg_match('/^\d{16}$/', $adhaar)) {
-        $adhaar = null; // or log/skipped
+    if ($adhaar !== null && $adhaar !== '') {
+        $digits = preg_replace('/\D/', '', (string) $adhaar);
+        $adhaar = strlen($digits) === 12 ? $digits : null;
     }
 
     return new Patient([
