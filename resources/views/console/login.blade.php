@@ -3,11 +3,9 @@
 @section ('content')
 
 
-<div class="container d-flex justify-content-center align-items-center">
-    
-    <div class="card shadow p-4" style="width: 100%; max-width: 400px;">
-        
-        <img src="/assets/images/Main-logo.png" alt="Logo" class="mb-4" style="width: 160px; margin: auto; display: block;">
+<div class="login-center w-100 d-flex flex-grow-1 justify-content-center align-items-center py-4 px-2 px-sm-3">
+    <div class="card shadow w-100" style="max-width: 400px;">
+        <img src="/assets/images/Main-logo.png" alt="Logo" class="mb-4 img-fluid d-block mx-auto" style="max-width: 160px;">
 
         <form method="post" action="/console/login" novalidate>
             @csrf
@@ -59,7 +57,6 @@
         </form>
 
     </div>
-
 </div>
 
 @endsection

@@ -22,8 +22,46 @@
 <script src="https://cdn.datatables.net/2.3.7/js/dataTables.min.js"></script>
 
     <style>
-        body {
+        html {
+            height: 100%;
+        }
+
+        body.console-body {
+            margin: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
             background-color: #f0f6ff;
+        }
+
+        .console-main {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .console-main > .console-inner {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .console-content {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .login-center .card {
+            margin-top: 0;
+        }
+
+        .adminbar.topbar {
+            flex-shrink: 0;
         }
 
         .topbar {
@@ -105,10 +143,10 @@
     border: none !important;
 }
 
-.adminfooter{
-    position: static;
-    width: 100%;
-}
+        .adminfooter {
+            flex-shrink: 0;
+            width: 100%;
+        }
 
 .dataTables_filter{
     margin-bottom:20px!important;
@@ -117,17 +155,29 @@
 @media (max-width:767px){
     .adminbar .admin-nav{
         flex-direction: column;
+        text-align: center;
     }
 
     .adminbar .admin-nav .brand{
         margin-bottom: 10px;
+    }
+
+    .adminbar .admin-nav > div:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem 0.75rem;
+    }
+
+    .adminbar .admin-nav > div:last-child a {
+        margin-left: 0;
     }
 }
 
     </style>
 </head>
 
-<body>
+<body class="console-body">
 
     <!-- Top Navigation -->
     <div class="adminbar topbar w3-padding">
@@ -152,25 +202,26 @@
         </div>
     </div>
 
-    <!-- Content Wrapper -->
-    <div class="container">
+    <main class="console-main">
+        <div class="container console-inner">
 
-        <!-- Flash Message -->
-        @if (session()->has('message'))
-            <div class="alert alert-error">
-                {{ session()->get('message') }}
+            <!-- Flash Message -->
+            @if (session()->has('message'))
+                <div class="alert alert-error">
+                    {{ session()->get('message') }}
+                </div>
+            @endif
+
+            <!-- Page Content -->
+            <div class="console-content">
+                @yield('content')
             </div>
-        @endif
 
-        <!-- Page Content -->
-        <div class="console-content">
-            @yield('content')
         </div>
+    </main>
 
-    </div>
-
-    <footer class="adminfooter text-center py-3 mt-4" style="background: #1f2937; color: #d1d5db; font-size: 14px;">
-    © Copyright 2026 Ministry of Ayush. All Rights Reserved
+    <footer class="adminfooter text-center py-3" style="background: #1f2937; color: #d1d5db; font-size: 14px;">
+        <span class="d-inline-block px-3">© Copyright 2026 Ministry of Ayush. All Rights Reserved</span>
     </footer>
 
     <script>
