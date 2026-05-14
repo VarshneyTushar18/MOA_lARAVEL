@@ -56,7 +56,15 @@
         <form method="POST" action="{{ route('console.survey_responses.import') }}" enctype="multipart/form-data">
             @csrf
 
-            <input type="file" name="file" class="form-control mb-3" accept=".csv,.xlsx,.xls" required>
+            <p class="text-muted small mb-2">Allowed types: CSV or Excel only (.csv, .xlsx, .xls). Maximum size 15&nbsp;MB.</p>
+            <input type="file"
+                   name="file"
+                   class="form-control mb-3 @error('file') is-invalid @enderror"
+                   accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                   required>
+            @error('file')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
 
             <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary">

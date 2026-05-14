@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Page;
+use App\Models\PageSection;
+use App\Models\PageSectionHighlightItem;
+use App\Models\PageSectionImage;
+use App\Services\CompressedUploadStorage;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use App\Models\Page;
-use App\Models\PageSection;
-use App\Models\PageSectionImage;
-use App\Models\PageSectionMedia;
-use App\Models\PageSectionHighlightItem;
 
 class PageSectionsController extends Controller
 {
@@ -19,7 +19,7 @@ class PageSectionsController extends Controller
     {
         return view('pages_console.sections.list', [
             'page' => $page,
-            'sections' => $page->sections()->with(['images','media','parent'])->orderBy('sort_order')->get(),
+            'sections' => $page->sections()->with(['images', 'media', 'parent'])->orderBy('sort_order')->get(),
         ]);
     }
 
@@ -57,7 +57,7 @@ class PageSectionsController extends Controller
             'parent_id' => 'nullable|exists:page_sections,id',
         ]);
 
-        $section = new PageSection();
+        $section = new PageSection;
         $section->page_id = $page->id;
         $section->section_key = $attributes['section_key'];
         $section->title = $attributes['title'] ?? null;
@@ -69,7 +69,7 @@ class PageSectionsController extends Controller
         $section->parent_id = $attributes['parent_id'] ?? null;
 
         if (request()->hasFile('image')) {
-            $section->image = request()->file('image')->store('page_sections', 'public');
+            $section->image = CompressedUploadStorage::storeImage(request()->file('image'), 'page_sections', 'public');
         }
 
         $section->save();
@@ -85,7 +85,7 @@ class PageSectionsController extends Controller
         // Multiple images
         if (request()->hasFile('images')) {
             foreach (request()->file('images') as $file) {
-                $path = $file->store('page_sections/images', 'public');
+                $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
                 $section->images()->create(['image' => $path]);
             }
         }
@@ -96,7 +96,7 @@ class PageSectionsController extends Controller
                 $path = $pdf->store('page_sections/pdfs', 'public');
                 $section->media()->create([
                     'type' => 'pdf',
-                    'file_path' => $path
+                    'file_path' => $path,
                 ]);
             }
         }
@@ -107,7 +107,7 @@ class PageSectionsController extends Controller
                 $path = $video->store('page_sections/videos', 'public');
                 $section->media()->create([
                     'type' => 'video',
-                    'file_path' => $path
+                    'file_path' => $path,
                 ]);
             }
         }
@@ -118,7 +118,7 @@ class PageSectionsController extends Controller
                 $path = $audio->store('page_sections/audios', 'public');
                 $section->media()->create([
                     'type' => 'audio',
-                    'file_path' => $path
+                    'file_path' => $path,
                 ]);
             }
         }
@@ -129,7 +129,7 @@ class PageSectionsController extends Controller
                 if ($link) {
                     $section->media()->create([
                         'type' => 'youtube',
-                        'youtube_url' => $link
+                        'youtube_url' => $link,
                     ]);
                 }
             }
@@ -143,6 +143,7 @@ class PageSectionsController extends Controller
     public function editForm(Page $page, PageSection $section)
     {
         $section->load('highlightItems');
+
         return view('pages_console.sections.edit', [
             'page' => $page,
             'section' => $section,
@@ -151,179 +152,174 @@ class PageSectionsController extends Controller
 
     // Edit section
     public function edit(Page $page, PageSection $section)
-{
-    $attributes = request()->validate([
-        'section_key' => 'required',
-        'title' => 'nullable',
-        'description' => 'nullable',
-        'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-        'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-        'image' => 'nullable|image',
-        'images.*' => 'nullable|image',
-        'pdfs.*' => 'nullable|file|mimes:pdf',
-        'videos.*' => 'nullable|file|mimes:mp4,mov,avi',
-        'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
-        'youtube_links.*' => 'nullable|url',
-        'highlight_items' => 'nullable|array',
-        'highlight_items.*.id' => 'nullable|integer',
-        'highlight_items.*.title' => 'nullable|string|max:255',
-        'highlight_items.*.description' => 'nullable|string',
-        'highlight_items.*.sort_order' => 'nullable|integer',
-        'highlight_items.*.youtube_url' => 'nullable|url',
-        'highlight_items.*.image' => 'nullable|image',
-        'highlight_items.*.video' => 'nullable|file|mimes:mp4,mov,avi',
-        'sort_order' => 'nullable|integer',
-        'parent_id' => 'nullable|exists:page_sections,id',
-    ]);
+    {
+        $attributes = request()->validate([
+            'section_key' => 'required',
+            'title' => 'nullable',
+            'description' => 'nullable',
+            'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+            'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+            'image' => 'nullable|image',
+            'images.*' => 'nullable|image',
+            'pdfs.*' => 'nullable|file|mimes:pdf',
+            'videos.*' => 'nullable|file|mimes:mp4,mov,avi',
+            'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
+            'youtube_links.*' => 'nullable|url',
+            'highlight_items' => 'nullable|array',
+            'highlight_items.*.id' => 'nullable|integer',
+            'highlight_items.*.title' => 'nullable|string|max:255',
+            'highlight_items.*.description' => 'nullable|string',
+            'highlight_items.*.sort_order' => 'nullable|integer',
+            'highlight_items.*.youtube_url' => 'nullable|url',
+            'highlight_items.*.image' => 'nullable|image',
+            'highlight_items.*.video' => 'nullable|file|mimes:mp4,mov,avi',
+            'sort_order' => 'nullable|integer',
+            'parent_id' => 'nullable|exists:page_sections,id',
+        ]);
 
-    // Basic fields update
-    $section->section_key = $attributes['section_key'];
-    $section->title = $attributes['title'] ?? null;
-    $section->description = $attributes['description'] ?? null;
-    $isHomeMarquee = $page->slug === 'home' && $attributes['section_key'] === 'home_marquee';
-    $section->text_color = $isHomeMarquee ? ($attributes['text_color'] ?? null) : null;
-    $section->bg_color = $isHomeMarquee ? ($attributes['bg_color'] ?? null) : null;
-    $section->sort_order = $attributes['sort_order'] ?? 0;
-    $section->parent_id = $attributes['parent_id'] ?? null;
+        // Basic fields update
+        $section->section_key = $attributes['section_key'];
+        $section->title = $attributes['title'] ?? null;
+        $section->description = $attributes['description'] ?? null;
+        $isHomeMarquee = $page->slug === 'home' && $attributes['section_key'] === 'home_marquee';
+        $section->text_color = $isHomeMarquee ? ($attributes['text_color'] ?? null) : null;
+        $section->bg_color = $isHomeMarquee ? ($attributes['bg_color'] ?? null) : null;
+        $section->sort_order = $attributes['sort_order'] ?? 0;
+        $section->parent_id = $attributes['parent_id'] ?? null;
 
-    // Replace main image only if new one uploaded
-    if (request()->hasFile('image')) {
-        if ($section->image) {
-            Storage::disk('public')->delete($section->image);
-        }
-        $section->image = request()->file('image')->store('page_sections', 'public');
-    }
-
-    $section->save();
-
-    if ($this->isFactsheetHighlightsChild($page, $attributes, $section) && request()->hasFile('videos')) {
-        $this->validateHighlightVideoDurations(request()->file('videos'));
-    }
-
-    if ($this->isFactsheetHighlightsSection($page, $attributes['section_key'] ?? null)) {
-        $this->syncHighlightItems(request(), $section);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | PDFs
-    |--------------------------------------------------------------------------
-    */
-
-    if (request()->hasFile('pdfs')) {
-
-        // delete only old PDFs
-        foreach ($section->media()->where('type', 'pdf')->get() as $media) {
-            if ($media->file_path) {
-                Storage::disk('public')->delete($media->file_path);
+        // Replace main image only if new one uploaded
+        if (request()->hasFile('image')) {
+            if ($section->image) {
+                Storage::disk('public')->delete($section->image);
             }
-            $media->delete();
+            $section->image = CompressedUploadStorage::storeImage(request()->file('image'), 'page_sections', 'public');
         }
 
-        // add new PDFs
-        foreach (request()->file('pdfs') as $pdf) {
-            $path = $pdf->store('page_sections/pdfs', 'public');
-            $section->media()->create([
-                'type' => 'pdf',
-                'file_path' => $path
-            ]);
+        $section->save();
+
+        if ($this->isFactsheetHighlightsChild($page, $attributes, $section) && request()->hasFile('videos')) {
+            $this->validateHighlightVideoDurations(request()->file('videos'));
         }
-    }
 
+        if ($this->isFactsheetHighlightsSection($page, $attributes['section_key'] ?? null)) {
+            $this->syncHighlightItems(request(), $section);
+        }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Videos
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | PDFs
+        |--------------------------------------------------------------------------
+        */
 
-    if (request()->hasFile('videos')) {
+        if (request()->hasFile('pdfs')) {
 
-        foreach ($section->media()->where('type', 'video')->get() as $media) {
-            if ($media->file_path) {
-                Storage::disk('public')->delete($media->file_path);
+            // delete only old PDFs
+            foreach ($section->media()->where('type', 'pdf')->get() as $media) {
+                if ($media->file_path) {
+                    Storage::disk('public')->delete($media->file_path);
+                }
+                $media->delete();
             }
-            $media->delete();
-        }
 
-        foreach (request()->file('videos') as $video) {
-            $path = $video->store('page_sections/videos', 'public');
-            $section->media()->create([
-                'type' => 'video',
-                'file_path' => $path
-            ]);
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Audios
-    |--------------------------------------------------------------------------
-    */
-
-    if (request()->hasFile('audios')) {
-
-        foreach ($section->media()->where('type', 'audio')->get() as $media) {
-            if ($media->file_path) {
-                Storage::disk('public')->delete($media->file_path);
-            }
-            $media->delete();
-        }
-
-        foreach (request()->file('audios') as $audio) {
-            $path = $audio->store('page_sections/audios', 'public');
-            $section->media()->create([
-                'type' => 'audio',
-                'file_path' => $path
-            ]);
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | YouTube Links
-    |--------------------------------------------------------------------------
-    */
-
-    if (request('youtube_links')) {
-
-        // delete old youtube links
-        foreach ($section->media()->where('type', 'youtube')->get() as $media) {
-            $media->delete();
-        }
-
-        foreach (request('youtube_links') as $link) {
-            if ($link) {
+            // add new PDFs
+            foreach (request()->file('pdfs') as $pdf) {
+                $path = $pdf->store('page_sections/pdfs', 'public');
                 $section->media()->create([
-                    'type' => 'youtube',
-                    'youtube_url' => $link
+                    'type' => 'pdf',
+                    'file_path' => $path,
                 ]);
             }
         }
-    }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Videos
+        |--------------------------------------------------------------------------
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | Additional Images (does NOT delete old ones)
-    |--------------------------------------------------------------------------
-    */
+        if (request()->hasFile('videos')) {
 
-    if (request()->hasFile('images')) {
-        foreach (request()->file('images') as $file) {
-            $path = $file->store('page_sections/images', 'public');
-            $section->images()->create([
-                'image' => $path
-            ]);
+            foreach ($section->media()->where('type', 'video')->get() as $media) {
+                if ($media->file_path) {
+                    Storage::disk('public')->delete($media->file_path);
+                }
+                $media->delete();
+            }
+
+            foreach (request()->file('videos') as $video) {
+                $path = $video->store('page_sections/videos', 'public');
+                $section->media()->create([
+                    'type' => 'video',
+                    'file_path' => $path,
+                ]);
+            }
         }
-    }
 
-    return redirect("/console/pages/sections/{$page->id}/list")
-        ->with('message', 'Changes saved successfully');
-}
+        /*
+        |--------------------------------------------------------------------------
+        | Audios
+        |--------------------------------------------------------------------------
+        */
+
+        if (request()->hasFile('audios')) {
+
+            foreach ($section->media()->where('type', 'audio')->get() as $media) {
+                if ($media->file_path) {
+                    Storage::disk('public')->delete($media->file_path);
+                }
+                $media->delete();
+            }
+
+            foreach (request()->file('audios') as $audio) {
+                $path = $audio->store('page_sections/audios', 'public');
+                $section->media()->create([
+                    'type' => 'audio',
+                    'file_path' => $path,
+                ]);
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | YouTube Links
+        |--------------------------------------------------------------------------
+        */
+
+        if (request('youtube_links')) {
+
+            // delete old youtube links
+            foreach ($section->media()->where('type', 'youtube')->get() as $media) {
+                $media->delete();
+            }
+
+            foreach (request('youtube_links') as $link) {
+                if ($link) {
+                    $section->media()->create([
+                        'type' => 'youtube',
+                        'youtube_url' => $link,
+                    ]);
+                }
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Additional Images (does NOT delete old ones)
+        |--------------------------------------------------------------------------
+        */
+
+        if (request()->hasFile('images')) {
+            foreach (request()->file('images') as $file) {
+                $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
+                $section->images()->create([
+                    'image' => $path,
+                ]);
+            }
+        }
+
+        return redirect("/console/pages/sections/{$page->id}/list")
+            ->with('message', 'Changes saved successfully');
+    }
 
     // Delete section
     public function delete(Page $page, PageSection $section)
@@ -364,6 +360,7 @@ class PageSectionsController extends Controller
     {
         Storage::disk('public')->delete($image->image);
         $image->delete();
+
         return back()->with('message', 'Image deleted');
     }
 
@@ -374,12 +371,12 @@ class PageSectionsController extends Controller
         }
 
         $parentId = $attributes['parent_id'] ?? $section?->parent_id;
-        if (!$parentId) {
+        if (! $parentId) {
             return false;
         }
 
         $parent = PageSection::find($parentId);
-        if (!$parent) {
+        if (! $parent) {
             return false;
         }
 
@@ -390,7 +387,7 @@ class PageSectionsController extends Controller
     private function validateHighlightVideoDurations(array $videos): void
     {
         foreach ($videos as $video) {
-            if (!$video instanceof UploadedFile) {
+            if (! $video instanceof UploadedFile) {
                 continue;
             }
 
@@ -408,12 +405,12 @@ class PageSectionsController extends Controller
     private function getVideoDurationInSeconds(UploadedFile $video): ?float
     {
         $ffprobe = $this->resolveFfprobeBinary();
-        if (!$ffprobe) {
+        if (! $ffprobe) {
             return null;
         }
 
         $videoPath = $video->getRealPath();
-        if (!$videoPath) {
+        if (! $videoPath) {
             return null;
         }
 
@@ -424,7 +421,7 @@ class PageSectionsController extends Controller
         );
 
         $output = trim((string) shell_exec($command));
-        if ($output === '' || !is_numeric($output)) {
+        if ($output === '' || ! is_numeric($output)) {
             return null;
         }
 
@@ -457,10 +454,12 @@ class PageSectionsController extends Controller
 
         if ($binary === '') {
             $ffprobePath = false;
+
             return null;
         }
 
         $ffprobePath = $binary;
+
         return $ffprobePath;
     }
 
@@ -472,7 +471,7 @@ class PageSectionsController extends Controller
     private function syncHighlightItems(Request $request, PageSection $section): void
     {
         $items = $request->input('highlight_items', []);
-        if (!is_array($items)) {
+        if (! is_array($items)) {
             $items = [];
         }
 
@@ -480,7 +479,7 @@ class PageSectionsController extends Controller
         $retainIds = [];
 
         foreach ($items as $index => $itemData) {
-            if (!is_array($itemData)) {
+            if (! is_array($itemData)) {
                 continue;
             }
 
@@ -496,12 +495,12 @@ class PageSectionsController extends Controller
             $videoFile = $request->file("highlight_items.$index.video");
 
             if (
-                !$highlightItem &&
-                !$imageFile &&
-                !$videoFile &&
-                !$youtubeUrl &&
-                !$title &&
-                !$description
+                ! $highlightItem &&
+                ! $imageFile &&
+                ! $videoFile &&
+                ! $youtubeUrl &&
+                ! $title &&
+                ! $description
             ) {
                 continue;
             }
@@ -512,7 +511,7 @@ class PageSectionsController extends Controller
                 || (bool) ($highlightItem && $highlightItem->image)
                 || (bool) ($highlightItem && $highlightItem->video_path);
 
-            if (!$hasMediaAfterSave) {
+            if (! $hasMediaAfterSave) {
                 throw ValidationException::withMessages([
                     "highlight_items.$index.youtube_url" => 'Each highlight needs at least one: image, video, or YouTube URL.',
                 ]);
@@ -522,8 +521,8 @@ class PageSectionsController extends Controller
                 $this->validateHighlightVideoDurations([$videoFile]);
             }
 
-            if (!$highlightItem) {
-                $highlightItem = new PageSectionHighlightItem();
+            if (! $highlightItem) {
+                $highlightItem = new PageSectionHighlightItem;
                 $highlightItem->page_section_id = $section->id;
             }
 
@@ -536,7 +535,7 @@ class PageSectionsController extends Controller
                 if ($highlightItem->image) {
                     Storage::disk('public')->delete($highlightItem->image);
                 }
-                $highlightItem->image = $imageFile->store('page_sections/highlights/images', 'public');
+                $highlightItem->image = CompressedUploadStorage::storeImage($imageFile, 'page_sections/highlights/images', 'public');
             }
 
             if ($videoFile) {

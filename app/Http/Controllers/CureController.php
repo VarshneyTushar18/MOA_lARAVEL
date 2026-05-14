@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CurePatient;
+use App\Services\CompressedUploadStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\CurePatient;
 
 class CureController extends Controller
 {
@@ -33,12 +34,12 @@ class CureController extends Controller
             $last3 = substr(str_pad($validated['tr_no'], 5, '0', STR_PAD_LEFT), -3);
         }
 
-        $access_code = $ltbi_last4 . $last3;
+        $access_code = $ltbi_last4.$last3;
 
         // Store File
         $file = $request->file('file');
-        $filename = $access_code . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('cure', $filename);
+        $filename = $access_code.'.'.$file->getClientOriginalExtension();
+        $path = CompressedUploadStorage::storeImageAs($file, 'cure', $filename);
 
         // Save DB
         CurePatient::create([
@@ -49,9 +50,8 @@ class CureController extends Controller
             'file_path' => $path,
         ]);
 
-        return back()->with('cure_success', 'File Uploaded Successfully. Access Code: ' . $access_code);
+        return back()->with('cure_success', 'File Uploaded Successfully. Access Code: '.$access_code);
     }
-
 
     public function download(Request $request)
     {
@@ -63,7 +63,7 @@ class CureController extends Controller
 
         $record = CurePatient::where('access_code', $request->input('access_code'))->first();
 
-        if (!$record) {
+        if (! $record) {
             return back()->withErrors([
                 'access_code' => 'Invalid access code.',
             ]);

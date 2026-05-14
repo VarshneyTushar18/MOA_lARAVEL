@@ -8,6 +8,7 @@ use App\Imports\SurveyResponsesImport;
 use App\Models\SurveyResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -26,9 +27,15 @@ class SurveyResponseController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:15360'],
+            'file' => [
+                'required',
+                File::types(['csv', 'xlsx', 'xls'])
+                    ->max(15360),
+            ],
         ], [
             'file.max' => 'The import file may not be larger than 15 MB.',
+            'file.mimes' => 'Only CSV or Excel files are allowed (.csv, .xlsx, .xls).',
+            'file.mimetypes' => 'Only CSV or Excel files are allowed (.csv, .xlsx, .xls).',
         ]);
 
         try {
@@ -57,7 +64,7 @@ class SurveyResponseController extends Controller
         $query = SurveyResponse::query()->latest();
         $this->applyFilters($query, $filters);
 
-        $filename = 'survey_responses_' . now()->format('Ymd_His') . '.xlsx';
+        $filename = 'survey_responses_'.now()->format('Ymd_His').'.xlsx';
 
         return Excel::download(new SurveyResponsesExport($query->get()), $filename);
     }
@@ -70,7 +77,7 @@ class SurveyResponseController extends Controller
         ]);
 
         $rows = SurveyResponse::whereIn('id', $validated['selected_ids'])->latest()->get();
-        $filename = 'survey_responses_selected_' . now()->format('Ymd_His') . '.xlsx';
+        $filename = 'survey_responses_selected_'.now()->format('Ymd_His').'.xlsx';
 
         return Excel::download(new SurveyResponsesExport($rows), $filename);
     }
@@ -79,7 +86,7 @@ class SurveyResponseController extends Controller
     {
         $path = storage_path('app/samples/survey_import_sample_new.csv');
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return back()->withErrors([
                 'file' => 'Sample file not found.',
             ]);
@@ -106,7 +113,7 @@ class SurveyResponseController extends Controller
 
         $deleted = SurveyResponse::whereIn('id', $validated['selected_ids'])->delete();
 
-        return back()->with('success', $deleted . ' survey response(s) deleted successfully.');
+        return back()->with('success', $deleted.' survey response(s) deleted successfully.');
     }
 
     private function validatedFilters(Request $request): array
@@ -122,7 +129,7 @@ class SurveyResponseController extends Controller
 
     private function applyFilters($query, array $filters): void
     {
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $search = trim((string) $filters['q']);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -131,19 +138,19 @@ class SurveyResponseController extends Controller
             });
         }
 
-        if (!empty($filters['gender'])) {
+        if (! empty($filters['gender'])) {
             $query->where('gender', $filters['gender']);
         }
 
-        if (!empty($filters['type_of_case'])) {
+        if (! empty($filters['type_of_case'])) {
             $query->where('answers->type_of_case', $filters['type_of_case']);
         }
 
-        if (!empty($filters['from_date'])) {
+        if (! empty($filters['from_date'])) {
             $query->whereDate('survey_date', '>=', $filters['from_date']);
         }
 
-        if (!empty($filters['to_date'])) {
+        if (! empty($filters['to_date'])) {
             $query->whereDate('survey_date', '<=', $filters['to_date']);
         }
     }

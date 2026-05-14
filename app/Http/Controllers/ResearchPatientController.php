@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ResearchPatient;
+use App\Services\CompressedUploadStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\ResearchPatient;
 
 class ResearchPatientController extends Controller
 {
@@ -25,12 +26,12 @@ class ResearchPatientController extends Controller
 
         // Store File
         $file = $request->file('file');
-        $filename = $ltbirs . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('research', $filename);
+        $filename = $ltbirs.'.'.$file->getClientOriginalExtension();
+        $path = CompressedUploadStorage::storeImageAs($file, 'research', $filename);
 
         ResearchPatient::create([
             'ltbirs_no' => $ltbirs,
-            'file_path' => $path
+            'file_path' => $path,
         ]);
 
         return back()->with('research_success', 'File uploaded successfully.');
@@ -50,7 +51,7 @@ class ResearchPatientController extends Controller
 
         $record = ResearchPatient::where('ltbirs_no', $request->ltbirs_no)->first();
 
-        if (!$record) {
+        if (! $record) {
             return back()->withErrors([
                 'ltbirs_no' => 'Record not found for this number.',
             ]);

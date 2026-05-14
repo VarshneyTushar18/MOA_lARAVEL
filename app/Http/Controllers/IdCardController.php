@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\IdCard;
+use App\Services\CompressedUploadStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\IdCard;
 
 class IdCardController extends Controller
 {
@@ -25,12 +26,12 @@ class IdCardController extends Controller
 
         // Store file
         $file = $request->file('file');
-        $filename = $idNumber . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('id_cards', $filename);
+        $filename = $idNumber.'.'.$file->getClientOriginalExtension();
+        $path = CompressedUploadStorage::storeImageAs($file, 'id_cards', $filename);
 
         IdCard::create([
             'id_number' => $idNumber,
-            'file_path' => $path
+            'file_path' => $path,
         ]);
 
         return back()->with('id_success', 'ID Card uploaded successfully.');
@@ -50,7 +51,7 @@ class IdCardController extends Controller
 
         $record = IdCard::where('id_number', $request->id_number)->first();
 
-        if (!$record) {
+        if (! $record) {
             return back()->withErrors([
                 'id_number' => 'ID card file not found for this number.',
             ]);

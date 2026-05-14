@@ -388,7 +388,7 @@
 
             {{-- QR Code --}}
             <div class="col-lg-6 d-flex flex-column align-items-center justify-content-start mt-0">
-                <h5 class="mb-2 mt-0">Scan Qr</h5>
+                <h5 class="mb-2 mt-0">Scan QR Code</h5>
                 <img src="{{ $surveyQrUrl }}"
                      class="img-fluid shadow rounded"
                      style="max-width:300px;"

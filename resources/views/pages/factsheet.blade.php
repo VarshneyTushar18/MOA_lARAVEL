@@ -239,15 +239,19 @@
                                 allowfullscreen></iframe>
                         </div>
                     @elseif($modalType === 'video')
-                        <video controls class="w-100 rounded">
-                            <source src="{{ $videoUrl }}">
-                            Your browser does not support video playback.
-                        </video>
+                        <div class="factsheet-highlight-modal__media">
+                            <video controls class="rounded factsheet-highlight-modal__video">
+                                <source src="{{ $videoUrl }}">
+                                Your browser does not support video playback.
+                            </video>
+                        </div>
                     @elseif($modalType === 'image')
-                        <img src="{{ $imageUrl }}"
-                             class="img-fluid rounded"
-                             alt="{{ $highlight->title ?? 'Highlight image' }}"
-                             onerror="this.onerror=null;this.src='{{ asset('assets/images/page-header-image.webp') }}';">
+                        <div class="factsheet-highlight-modal__media">
+                            <img src="{{ $imageUrl }}"
+                                 class="rounded factsheet-highlight-modal__image"
+                                 alt="{{ $highlight->title ?? 'Highlight image' }}"
+                                 onerror="this.onerror=null;this.src='{{ asset('assets/images/page-header-image.webp') }}';">
+                        </div>
                     @endif
 
                     @if(!empty($highlight->description))

@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Project;
+use App\Models\Type;
+use App\Services\CompressedUploadStorage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use App\Models\Project;
-use App\Models\Type;
 
 class ProjectsController extends Controller
 {
-
     public function list()
     {
         return view('projects.list', [
-            'projects' => Project::all()
+            'projects' => Project::all(),
         ]);
     }
 
@@ -25,7 +24,7 @@ class ProjectsController extends Controller
             'types' => Type::all(),
         ]);
     }
-    
+
     public function add()
     {
 
@@ -37,7 +36,7 @@ class ProjectsController extends Controller
             'type_id' => 'required|exists:types,id',
         ]);
 
-        $project = new Project();
+        $project = new Project;
         $project->title = $attributes['title'];
         $project->slug = $attributes['slug'];
         $project->url = $attributes['url'];
@@ -89,15 +88,14 @@ class ProjectsController extends Controller
     public function delete(Project $project)
     {
 
-        if($project->image)
-        {
+        if ($project->image) {
             Storage::delete($project->image);
         }
-        
+
         $project->delete();
-        
+
         return redirect('/console/projects/list')
-            ->with('message', 'Project has been deleted!');        
+            ->with('message', 'Project has been deleted!');
     }
 
     public function imageForm(Project $project)
@@ -114,18 +112,20 @@ class ProjectsController extends Controller
             'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
         ]);
 
-        if($project->image)
-        {
+        if ($project->image) {
             Storage::delete($project->image);
         }
-        
-        $path = request()->file('image')->store('projects');
+
+        $path = CompressedUploadStorage::storeImage(
+            request()->file('image'),
+            'projects',
+            config('filesystems.default', 'local')
+        );
 
         $project->image = $path;
         $project->save();
-        
+
         return redirect('/console/projects/list')
             ->with('message', 'Project image has been edited!');
     }
-    
 }
