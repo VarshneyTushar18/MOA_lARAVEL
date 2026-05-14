@@ -33,9 +33,9 @@ class SurveyResponseController extends Controller
                     ->max(15360),
             ],
         ], [
-            'file.max' => 'The import file may not be larger than 15 MB.',
-            'file.mimes' => 'Only CSV or Excel files are allowed (.csv, .xlsx, .xls).',
-            'file.mimetypes' => 'Only CSV or Excel files are allowed (.csv, .xlsx, .xls).',
+            'file.max' => 'File too large. Max 15 MB. Use .csv, .xlsx, or .xls.',
+            'file.mimes' => 'Wrong file type. Use .csv, .xlsx, or .xls only.',
+            'file.mimetypes' => 'Wrong file type. Use .csv, .xlsx, or .xls only.',
         ]);
 
         try {
@@ -44,7 +44,7 @@ class SurveyResponseController extends Controller
             report($e);
 
             return back()->withInput()->withErrors([
-                'file' => 'Import failed. Please verify the file format and column headers.',
+                'file' => 'Wrong file or layout. Use CSV/Excel with the sample columns.',
             ]);
         }
 

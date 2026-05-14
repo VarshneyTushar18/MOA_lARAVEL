@@ -212,6 +212,13 @@
                 </div>
             @endif
 
+            @if ($errors->any())
+                <div class="alert alert-danger py-2 px-3 mb-3 d-flex align-items-center gap-2 small" role="alert">
+                    <i class="fa-solid fa-circle-exclamation flex-shrink-0" aria-hidden="true"></i>
+                    <span class="mb-0">{{ $errors->first() }}</span>
+                </div>
+            @endif
+
             <!-- Page Content -->
             <div class="console-content">
                 @yield('content')
