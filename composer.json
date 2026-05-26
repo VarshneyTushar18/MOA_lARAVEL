@@ -35,6 +35,14 @@
         }
     },
     "scripts": {
+        "serve": {
+            "script": "@php artisan serve:large",
+            "timeout": 0
+        },
+        "queue": {
+            "script": "@php artisan queue:work --queue=default --tries=1 --timeout=3600",
+            "timeout": 0
+        },
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

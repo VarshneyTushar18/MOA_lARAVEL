@@ -6,6 +6,9 @@
 
     <title>Admin Console | My Portfolio</title>
 
+    <link rel="icon" href="{{ asset('assets/images/favicon.png') }}" type="image/png">
+    <link rel="shortcut icon" href="{{ asset('assets/images/favicon.png') }}" type="image/png">
+
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="{{ url('app.css') }}">
 
@@ -174,10 +177,52 @@
     }
 }
 
+        .console-upload-overlay {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1050;
+            padding: 0.75rem 1rem 1rem;
+            background: linear-gradient(to top, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.75) 40%, transparent);
+            pointer-events: none;
+        }
+
+        .console-upload-overlay.is-active {
+            pointer-events: auto;
+        }
+
+        .console-upload-panel {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+            border: 1px solid #e5e7eb;
+        }
+
+        .console-upload-progress-track {
+            height: 1.35rem;
+            border-radius: 0.5rem;
+        }
+
+        .console-upload-progress-track .progress-bar {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        #console-upload-detail {
+            word-break: break-word;
+        }
+
     </style>
 </head>
 
-<body class="console-body">
+<body class="console-body"
+      data-php-upload-max-bytes="{{ \App\Support\UploadLimits::effectiveMaxBytes() }}"
+      data-php-upload-max-label="{{ \App\Support\UploadLimits::effectiveMaxLabel() }}"
+      @if(config('upload_compression.video_compress_async')) data-video-compress-async="1" @endif>
 
     <!-- Top Navigation -->
     <div class="adminbar topbar w3-padding">
@@ -231,6 +276,7 @@
         <span class="d-inline-block px-3">© Copyright 2026 Ministry of Ayush. All Rights Reserved</span>
     </footer>
 
+    <script src="{{ asset('assets/js/console-upload-progress.js') }}"></script>
     <script>
     $(document).ready(function () {
         $('.datatable').each(function () {

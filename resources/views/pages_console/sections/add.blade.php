@@ -2,6 +2,12 @@
 
 @section('content')
 
+@php
+    $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
+    $maxHighlightSec = (int) config('upload_compression.highlight_video_max_seconds', 10);
+    $highlightDurationLabel = $maxHighlightSec > 0 ? "max {$maxHighlightSec} sec, " : '';
+@endphp
+
 <section class="w3-padding">
 
     <h2>Add Section for {{ $page->title }}</h2>
@@ -93,9 +99,11 @@
             </div>
 
             <div class="w3-margin-bottom">
-                <label for="videos">Videos (YouTube embed links, one per line)</label>
-                <input type="file" name="videos[]" multiple accept="video/*">
-                <textarea name="youtube_links[]" placeholder="YouTube link"></textarea>
+                <label for="videos">Upload Videos (MP4, MOV, AVI — max {{ $maxVideoMb }} MB each)</label>
+                <input type="file" name="videos[]" id="videos" multiple accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
+                <p class="w3-small w3-text-grey">Upload progress appears at the bottom of the screen. For large videos, start the server with <code>php artisan serve:large</code> (same UI as <code>php artisan serve</code>).</p>
+                <label class="w3-margin-top">YouTube URL (optional)</label>
+                <textarea name="youtube_links[]" class="w3-input" placeholder="https://www.youtube.com/watch?v=..."></textarea>
             </div>
 
             <div class="w3-margin-bottom">
@@ -139,8 +147,8 @@
                             <input type="url" class="w3-input" name="highlight_items[{{ $idx }}][youtube_url]" value="{{ $highlightItem['youtube_url'] ?? '' }}">
                         </div>
                         <div class="w3-margin-bottom">
-                            <label>Upload Video (max 10 sec)</label>
-                            <input type="file" class="w3-input" name="highlight_items[{{ $idx }}][video]" accept="video/*">
+                            <label>Upload Video ({{ $highlightDurationLabel }}{{ $maxVideoMb }} MB)</label>
+                            <input type="file" class="w3-input" name="highlight_items[{{ $idx }}][video]" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
                         </div>
                         <button type="button" class="w3-button w3-red remove-highlight-item">Remove</button>
                     </div>
@@ -169,6 +177,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var colors = document.getElementById('section_form_marquee_colors');
     var isHome = @json($page->slug === 'home');
     var isFactsheet = @json($page->slug === 'factsheet');
+    var maxVideoMb = @json($maxVideoMb);
+    var highlightDurationLabel = @json($highlightDurationLabel);
     var highlightIndex = (function() {
         if (!highlightsWrapper) return 0;
         return highlightsWrapper.querySelectorAll('.highlight-item').length;
@@ -191,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="w3-margin-bottom"><label>Sort Order</label><input type="number" class="w3-input" name="highlight_items[' + index + '][sort_order]" value="0"></div>' +
                 '<div class="w3-margin-bottom"><label>Cover Image</label><input type="file" class="w3-input" name="highlight_items[' + index + '][image]" accept="image/*"></div>' +
                 '<div class="w3-margin-bottom"><label>YouTube URL</label><input type="url" class="w3-input" name="highlight_items[' + index + '][youtube_url]"></div>' +
-                '<div class="w3-margin-bottom"><label>Upload Video (max 10 sec)</label><input type="file" class="w3-input" name="highlight_items[' + index + '][video]" accept="video/*"></div>' +
+                '<div class="w3-margin-bottom"><label>Upload Video (' + highlightDurationLabel + maxVideoMb + ' MB)</label><input type="file" class="w3-input" name="highlight_items[' + index + '][video]" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"></div>' +
                 '<button type="button" class="w3-button w3-red remove-highlight-item">Remove</button>' +
             '</div>';
     }

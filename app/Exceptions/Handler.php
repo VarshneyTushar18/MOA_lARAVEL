@@ -49,17 +49,18 @@ class Handler extends ExceptionHandler
     public function render($request, Throwable $e)
     {
         if ($e instanceof PostTooLargeException) {
+            $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
+            $message = "Upload too large for the server (PHP post/upload limit). "
+                ."Videos are limited to {$maxVideoMb} MB in the app; raise post_max_size and upload_max_filesize in php.ini, "
+                .'or run: php artisan serve:large';
+
             if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => 'Upload too large. Use a smaller CSV or Excel file.',
-                ], 413);
+                return response()->json(['message' => $message], 413);
             }
 
             return redirect()
                 ->back(302, [], route('console.dashboard'))
-                ->withErrors([
-                    'file' => 'Upload too large. Use a smaller CSV or Excel file.',
-                ]);
+                ->withErrors(['file' => $message]);
         }
 
         return parent::render($request, $e);

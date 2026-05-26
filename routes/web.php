@@ -26,6 +26,15 @@ use App\Http\Controllers\Console\SurveyResponseController as ConsoleSurveyRespon
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/favicon.ico', function () {
+    $path = public_path('assets/images/favicon.png');
+
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, ['Content-Type' => 'image/png']);
+});
+
 Route::get('/', [HomeController::class, 'index']);
 Route::get('/about', [HomeController::class, 'aboutUs']);
 Route::get('/contact', [HomeController::class, 'contactUs']);

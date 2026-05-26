@@ -118,6 +118,21 @@
         }
     }
 
+    if (!function_exists('factsheetStorageUrlWithVersion')) {
+        function factsheetStorageUrlWithVersion(string $relative): string
+        {
+            $relative = ltrim(str_replace('\\', '/', $relative), '/');
+            $url = '/storage/'.$relative;
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+
+            if ($disk->exists($relative)) {
+                $url .= '?v='.$disk->lastModified($relative);
+            }
+
+            return $url;
+        }
+    }
+
     if (!function_exists('factsheetHighlightVideoUrl')) {
         function factsheetHighlightVideoUrl($highlight): ?string
         {
@@ -132,7 +147,7 @@
 
             $relative = factsheetResolveStorageRelativePath($raw);
             if ($relative) {
-                return '/storage/' . ltrim($relative, '/');
+                return factsheetStorageUrlWithVersion($relative);
             }
 
             $clean = ltrim($raw, '/');
@@ -140,7 +155,11 @@
                 $clean = substr($clean, strlen('public/'));
             }
             $absolute = public_path($clean);
-            return is_file($absolute) ? asset($clean) : null;
+            if (! is_file($absolute)) {
+                return null;
+            }
+
+            return factsheetStorageUrlWithVersion($clean);
         }
     }
 

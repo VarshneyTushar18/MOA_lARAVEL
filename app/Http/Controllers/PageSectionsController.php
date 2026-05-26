@@ -7,6 +7,7 @@ use App\Models\PageSection;
 use App\Models\PageSectionHighlightItem;
 use App\Models\PageSectionImage;
 use App\Services\CompressedUploadStorage;
+use App\Support\UploadLimits;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -34,28 +35,31 @@ class PageSectionsController extends Controller
     // Add section
     public function add(Page $page)
     {
-        $attributes = request()->validate([
-            'section_key' => 'required',
-            'title' => 'nullable',
-            'description' => 'nullable',
-            'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-            'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-            'image' => 'nullable|image',
-            'images.*' => 'nullable|image',
-            'pdfs.*' => 'nullable|file|mimes:pdf',
-            'videos.*' => 'nullable|file|mimes:mp4,mov,avi',
-            'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
-            'youtube_links.*' => 'nullable|url',
-            'highlight_items' => 'nullable|array',
-            'highlight_items.*.title' => 'nullable|string|max:255',
-            'highlight_items.*.description' => 'nullable|string',
-            'highlight_items.*.sort_order' => 'nullable|integer',
-            'highlight_items.*.youtube_url' => 'nullable|url',
-            'highlight_items.*.image' => 'nullable|image',
-            'highlight_items.*.video' => 'nullable|file|mimes:mp4,mov,avi',
-            'sort_order' => 'nullable|integer',
-            'parent_id' => 'nullable|exists:page_sections,id',
-        ]);
+        $attributes = request()->validate(
+            array_merge([
+                'section_key' => 'required',
+                'title' => 'nullable',
+                'description' => 'nullable',
+                'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+                'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+                'image' => 'nullable|image',
+                'images.*' => 'nullable|image',
+                'pdfs.*' => 'nullable|file|mimes:pdf',
+                'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
+                'youtube_links.*' => 'nullable|url',
+                'highlight_items' => 'nullable|array',
+                'highlight_items.*.title' => 'nullable|string|max:255',
+                'highlight_items.*.description' => 'nullable|string',
+                'highlight_items.*.sort_order' => 'nullable|integer',
+                'highlight_items.*.youtube_url' => 'nullable|url',
+                'highlight_items.*.image' => 'nullable|image',
+                'sort_order' => 'nullable|integer',
+                'parent_id' => 'nullable|exists:page_sections,id',
+            ], $this->videoUploadValidationRules()),
+            $this->videoUploadValidationMessages()
+        );
+
+        $this->assertUploadsNotBlockedByPhp(request());
 
         $section = new PageSection;
         $section->page_id = $page->id;
@@ -104,7 +108,7 @@ class PageSectionsController extends Controller
         // Local Videos
         if (request()->hasFile('videos')) {
             foreach (request()->file('videos') as $video) {
-                $path = $video->store('page_sections/videos', 'public');
+                $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
                 $section->media()->create([
                     'type' => 'video',
                     'file_path' => $path,
@@ -136,46 +140,51 @@ class PageSectionsController extends Controller
         }
 
         return redirect("/console/pages/sections/{$page->id}/list")
-            ->with('message', 'Section added');
+            ->with('message', $this->appendVideoCompressionNotice('Section added'));
     }
 
     // Show edit form
     public function editForm(Page $page, PageSection $section)
     {
-        $section->load('highlightItems');
+        $section->load(['highlightItems', 'media']);
+        $page->load('sections');
 
         return view('pages_console.sections.edit', [
             'page' => $page,
             'section' => $section,
+            'highlightItems' => $this->highlightItemsForEditForm($section),
         ]);
     }
 
     // Edit section
     public function edit(Page $page, PageSection $section)
     {
-        $attributes = request()->validate([
-            'section_key' => 'required',
-            'title' => 'nullable',
-            'description' => 'nullable',
-            'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-            'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-            'image' => 'nullable|image',
-            'images.*' => 'nullable|image',
-            'pdfs.*' => 'nullable|file|mimes:pdf',
-            'videos.*' => 'nullable|file|mimes:mp4,mov,avi',
-            'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
-            'youtube_links.*' => 'nullable|url',
-            'highlight_items' => 'nullable|array',
-            'highlight_items.*.id' => 'nullable|integer',
-            'highlight_items.*.title' => 'nullable|string|max:255',
-            'highlight_items.*.description' => 'nullable|string',
-            'highlight_items.*.sort_order' => 'nullable|integer',
-            'highlight_items.*.youtube_url' => 'nullable|url',
-            'highlight_items.*.image' => 'nullable|image',
-            'highlight_items.*.video' => 'nullable|file|mimes:mp4,mov,avi',
-            'sort_order' => 'nullable|integer',
-            'parent_id' => 'nullable|exists:page_sections,id',
-        ]);
+        $attributes = request()->validate(
+            array_merge([
+                'section_key' => 'required',
+                'title' => 'nullable',
+                'description' => 'nullable',
+                'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+                'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
+                'image' => 'nullable|image',
+                'images.*' => 'nullable|image',
+                'pdfs.*' => 'nullable|file|mimes:pdf',
+                'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
+                'youtube_links.*' => 'nullable|url',
+                'highlight_items' => 'nullable|array',
+                'highlight_items.*.id' => 'nullable|integer',
+                'highlight_items.*.title' => 'nullable|string|max:255',
+                'highlight_items.*.description' => 'nullable|string',
+                'highlight_items.*.sort_order' => 'nullable|integer',
+                'highlight_items.*.youtube_url' => 'nullable|url',
+                'highlight_items.*.image' => 'nullable|image',
+                'sort_order' => 'nullable|integer',
+                'parent_id' => 'nullable|exists:page_sections,id',
+            ], $this->videoUploadValidationRules()),
+            $this->videoUploadValidationMessages()
+        );
+
+        $this->assertUploadsNotBlockedByPhp(request());
 
         // Basic fields update
         $section->section_key = $attributes['section_key'];
@@ -247,7 +256,7 @@ class PageSectionsController extends Controller
             }
 
             foreach (request()->file('videos') as $video) {
-                $path = $video->store('page_sections/videos', 'public');
+                $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
                 $section->media()->create([
                     'type' => 'video',
                     'file_path' => $path,
@@ -318,7 +327,7 @@ class PageSectionsController extends Controller
         }
 
         return redirect("/console/pages/sections/{$page->id}/list")
-            ->with('message', 'Changes saved successfully');
+            ->with('message', $this->appendVideoCompressionNotice('Changes saved successfully'));
     }
 
     // Delete section
@@ -384,8 +393,20 @@ class PageSectionsController extends Controller
             && $parent->section_key === 'factsheet_highlights';
     }
 
-    private function validateHighlightVideoDurations(array $videos): void
+    private function highlightVideoMaxSeconds(): ?int
     {
+        $max = (int) config('upload_compression.highlight_video_max_seconds', 10);
+
+        return $max > 0 ? $max : null;
+    }
+
+    private function validateHighlightVideoDurations(array $videos, string $errorKey = 'videos'): void
+    {
+        $maxSeconds = $this->highlightVideoMaxSeconds();
+        if ($maxSeconds === null) {
+            return;
+        }
+
         foreach ($videos as $video) {
             if (! $video instanceof UploadedFile) {
                 continue;
@@ -393,10 +414,9 @@ class PageSectionsController extends Controller
 
             $duration = $this->getVideoDurationInSeconds($video);
             // If duration probing is unavailable on this machine, do not block upload.
-            // We still enforce the max-duration rule whenever probing succeeds.
-            if ($duration !== null && $duration > 10) {
+            if ($duration !== null && $duration > $maxSeconds) {
                 throw ValidationException::withMessages([
-                    'videos' => 'Highlight videos must be 10 seconds or shorter.',
+                    $errorKey => "Highlight videos must be {$maxSeconds} seconds or shorter (yours is ".(int) round($duration).' sec). Use a shorter clip or a YouTube URL.',
                 ]);
             }
         }
@@ -518,7 +538,7 @@ class PageSectionsController extends Controller
             }
 
             if ($videoFile) {
-                $this->validateHighlightVideoDurations([$videoFile]);
+                $this->validateHighlightVideoDurations([$videoFile], "highlight_items.$index.video");
             }
 
             if (! $highlightItem) {
@@ -542,7 +562,7 @@ class PageSectionsController extends Controller
                 if ($highlightItem->video_path) {
                     Storage::disk('public')->delete($highlightItem->video_path);
                 }
-                $highlightItem->video_path = $videoFile->store('page_sections/highlights/videos', 'public');
+                $highlightItem->video_path = CompressedUploadStorage::storeVideo($videoFile, 'page_sections/highlights/videos', 'public');
             }
 
             $highlightItem->save();
@@ -562,5 +582,119 @@ class PageSectionsController extends Controller
             }
             $existingItem->delete();
         }
+    }
+
+    private function appendVideoCompressionNotice(string $message): string
+    {
+        $notice = CompressedUploadStorage::videoCompressionNotice();
+
+        return $notice ? $message.' '.$notice : $message;
+    }
+
+    private function assertUploadsNotBlockedByPhp(Request $request): void
+    {
+        foreach ($this->flattenUploadedFiles($request->allFiles()) as $file) {
+            if (! $file->isValid()) {
+                $message = match ($file->getError()) {
+                    UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'File "'.$file->getClientOriginalName().'" exceeds the PHP upload limit ('.UploadLimits::effectiveMaxLabel().'). Run: php artisan serve:large',
+                    default => 'Upload failed for "'.$file->getClientOriginalName().'".',
+                };
+
+                throw ValidationException::withMessages(['videos' => $message]);
+            }
+        }
+
+        $contentLength = (int) $request->server('CONTENT_LENGTH', 0);
+        $phpLimit = UploadLimits::effectiveMaxBytes();
+
+        if ($contentLength > $phpLimit && $this->countValidUploadedFiles($request) === 0) {
+            throw ValidationException::withMessages([
+                'videos' => 'The server dropped your upload (PHP limit is '.UploadLimits::effectiveMaxLabel().'). '
+                    .'Stop the server, then run: php artisan serve:large  (or .\\serve-large-uploads.bat)',
+            ]);
+        }
+    }
+
+    /** @return list<UploadedFile> */
+    private function flattenUploadedFiles(array $files): array
+    {
+        $flat = [];
+
+        foreach ($files as $file) {
+            if ($file instanceof UploadedFile) {
+                $flat[] = $file;
+            } elseif (is_array($file)) {
+                $flat = array_merge($flat, $this->flattenUploadedFiles($file));
+            }
+        }
+
+        return $flat;
+    }
+
+    private function countValidUploadedFiles(Request $request): int
+    {
+        $count = 0;
+
+        foreach ($this->flattenUploadedFiles($request->allFiles()) as $file) {
+            if ($file->isValid()) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function highlightItemsForEditForm(PageSection $section): array
+    {
+        $old = old('highlight_items');
+        if (is_array($old)) {
+            return $old;
+        }
+
+        return $section->highlightItems->map(function (PageSectionHighlightItem $item) {
+            return [
+                'id' => $item->id,
+                'title' => $item->title,
+                'description' => $item->description,
+                'sort_order' => $item->sort_order,
+                'youtube_url' => $item->youtube_url,
+                'existing_image' => $item->image,
+                'existing_video_path' => $item->video_path,
+            ];
+        })->all();
+    }
+
+    private function maxVideoKilobytes(): int
+    {
+        return (int) config('upload_compression.max_video_kilobytes', 204800);
+    }
+
+    private function maxVideoMegabytes(): int
+    {
+        return (int) config('upload_compression.max_video_mb', 200);
+    }
+
+    /** @return array<string, string> */
+    private function videoUploadValidationRules(): array
+    {
+        $maxKb = $this->maxVideoKilobytes();
+        $rule = "nullable|file|mimes:mp4,mov,avi|max:{$maxKb}";
+
+        return [
+            'videos.*' => $rule,
+            'highlight_items.*.video' => $rule,
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function videoUploadValidationMessages(): array
+    {
+        $maxMb = $this->maxVideoMegabytes();
+
+        return [
+            'videos.*.max' => "Each video file must be {$maxMb} MB or smaller.",
+            'highlight_items.*.video.max' => "Each highlight video must be {$maxMb} MB or smaller.",
+        ];
     }
 }

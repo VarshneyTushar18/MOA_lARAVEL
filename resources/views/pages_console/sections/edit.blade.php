@@ -2,6 +2,12 @@
 
 @section('content')
 
+@php
+    $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
+    $maxHighlightSec = (int) config('upload_compression.highlight_video_max_seconds', 10);
+    $highlightDurationLabel = $maxHighlightSec > 0 ? "max {$maxHighlightSec} sec, " : '';
+@endphp
+
 <section class="w3-padding">
 
     <h2>Edit Section for {{ $page->title }}</h2>
@@ -109,8 +115,14 @@
 
             {{-- Videos --}}
             <div class="w3-margin-bottom">
-                <label for="videos">Videos (YouTube links, one per line)</label>
-                <textarea name="videos" id="videos" rows="4">@if($section->videos){{ implode("\n", $section->videos) }}@endif</textarea>
+                <label for="videos">Upload Videos (MP4, MOV, AVI — max {{ $maxVideoMb }} MB each)</label>
+                @foreach($section->media->where('type', 'video') as $media)
+                    @if($media->file_path)
+                        <div class="w3-small"><a href="{{ asset('storage/'.$media->file_path) }}" target="_blank">Current video</a></div>
+                    @endif
+                @endforeach
+                <input type="file" name="videos[]" id="videos" multiple accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
+                <p class="w3-small w3-text-grey">Upload progress appears at the bottom of the screen. Uploading new files replaces existing section videos. For large files use <code>php artisan serve:large</code>.</p>
             </div>
 
             <div class="w3-margin-bottom">
@@ -129,23 +141,6 @@
             <h4>Factsheet Highlights</h4>
             <p class="w3-small">Each row needs at least one: Image, Video, or YouTube URL.</p>
             <div id="highlight_items_wrapper">
-                @php
-                    $oldHighlightItems = old('highlight_items');
-                    $highlightItems = is_array($oldHighlightItems)
-                        ? $oldHighlightItems
-                        : $section->highlightItems->map(function ($item) {
-                            return [
-                                'id' => $item->id,
-                                'title' => $item->title,
-                                'description' => $item->description,
-                                'sort_order' => $item->sort_order,
-                                'youtube_url' => $item->youtube_url,
-                                'existing_image' => $item->image,
-                                'existing_video_path' => $item->video_path,
-                            ];
-                        })->toArray();
-                @endphp
-
                 @foreach($highlightItems as $idx => $highlightItem)
                     <div class="w3-border w3-padding w3-margin-bottom highlight-item" data-index="{{ $idx }}">
                         <input type="hidden" name="highlight_items[{{ $idx }}][id]" value="{{ $highlightItem['id'] ?? '' }}">
@@ -182,8 +177,8 @@
                             </div>
                         @endif
                         <div class="w3-margin-bottom">
-                            <label>Upload Video (max 10 sec)</label>
-                            <input type="file" class="w3-input" name="highlight_items[{{ $idx }}][video]" accept="video/*">
+                            <label>Upload Video ({{ $highlightDurationLabel }}{{ $maxVideoMb }} MB)</label>
+                            <input type="file" class="w3-input" name="highlight_items[{{ $idx }}][video]" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
                         </div>
                         <button type="button" class="w3-button w3-red remove-highlight-item">Remove</button>
                     </div>
@@ -211,6 +206,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var colors = document.getElementById('section_form_marquee_colors');
     var isHome = @json($page->slug === 'home');
     var isFactsheet = @json($page->slug === 'factsheet');
+    var maxVideoMb = @json($maxVideoMb);
+    var highlightDurationLabel = @json($highlightDurationLabel);
     var highlightIndex = (function() {
         if (!highlightsWrapper) return 0;
         return highlightsWrapper.querySelectorAll('.highlight-item').length;
@@ -234,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="w3-margin-bottom"><label>Sort Order</label><input type="number" class="w3-input" name="highlight_items[' + index + '][sort_order]" value="0"></div>' +
                 '<div class="w3-margin-bottom"><label>Cover Image</label><input type="file" class="w3-input" name="highlight_items[' + index + '][image]" accept="image/*"></div>' +
                 '<div class="w3-margin-bottom"><label>YouTube URL</label><input type="url" class="w3-input" name="highlight_items[' + index + '][youtube_url]"></div>' +
-                '<div class="w3-margin-bottom"><label>Upload Video (max 10 sec)</label><input type="file" class="w3-input" name="highlight_items[' + index + '][video]" accept="video/*"></div>' +
+                '<div class="w3-margin-bottom"><label>Upload Video (' + highlightDurationLabel + maxVideoMb + ' MB)</label><input type="file" class="w3-input" name="highlight_items[' + index + '][video]" accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"></div>' +
                 '<button type="button" class="w3-button w3-red remove-highlight-item">Remove</button>' +
             '</div>';
     }
