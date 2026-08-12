@@ -110,7 +110,7 @@
                 @if($section->pdf)
                     <div><a href="{{ asset('storage/'.$section->pdf) }}" target="_blank">View PDF</a></div>
                 @endif
-                <input type="file" name="pdf" id="pdf">
+                <input type="file" name="pdfs[]" id="pdf" accept="application/pdf,.pdf">
             </div>
 
             {{-- Videos --}}

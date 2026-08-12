@@ -139,8 +139,7 @@ class PageSectionsController extends Controller
             }
         }
 
-        return redirect("/console/pages/sections/{$page->id}/list")
-            ->with('message', $this->appendVideoCompressionNotice('Section added'));
+        return $this->sectionSaveRedirect($page, 'Section added');
     }
 
     // Show edit form
@@ -326,8 +325,7 @@ class PageSectionsController extends Controller
             }
         }
 
-        return redirect("/console/pages/sections/{$page->id}/list")
-            ->with('message', $this->appendVideoCompressionNotice('Changes saved successfully'));
+        return $this->sectionSaveRedirect($page, 'Changes saved successfully');
     }
 
     // Delete section
@@ -586,9 +584,28 @@ class PageSectionsController extends Controller
 
     private function appendVideoCompressionNotice(string $message): string
     {
+        if (! config('upload_compression.video_enabled', false)) {
+            return $message;
+        }
+
         $notice = CompressedUploadStorage::videoCompressionNotice();
 
         return $notice ? $message.' '.$notice : $message;
+    }
+
+    private function sectionSaveRedirect(Page $page, string $message)
+    {
+        $message = $this->appendVideoCompressionNotice($message);
+        $redirectUrl = "/console/pages/sections/{$page->id}/list";
+
+        if (request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'redirect' => $redirectUrl,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect($redirectUrl)->with('message', $message);
     }
 
     private function assertUploadsNotBlockedByPhp(Request $request): void

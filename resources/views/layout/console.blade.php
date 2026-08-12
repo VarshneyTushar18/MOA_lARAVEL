@@ -219,10 +219,15 @@
     </style>
 </head>
 
+@php
+    $uploadCompressionEnabled = config('upload_compression.enabled', false)
+        || config('upload_compression.video_enabled', false);
+@endphp
 <body class="console-body"
       data-php-upload-max-bytes="{{ \App\Support\UploadLimits::effectiveMaxBytes() }}"
       data-php-upload-max-label="{{ \App\Support\UploadLimits::effectiveMaxLabel() }}"
-      @if(config('upload_compression.video_compress_async')) data-video-compress-async="1" @endif>
+      data-upload-compression-enabled="{{ $uploadCompressionEnabled ? '1' : '0' }}"
+      @if($uploadCompressionEnabled && config('upload_compression.video_compress_async')) data-video-compress-async="1" @endif>
 
     <!-- Top Navigation -->
     <div class="adminbar topbar w3-padding">
@@ -252,7 +257,7 @@
 
             <!-- Flash Message -->
             @if (session()->has('message'))
-                <div class="alert alert-error">
+                <div class="alert alert-success py-2 px-3 mb-3 small" role="status">
                     {{ session()->get('message') }}
                 </div>
             @endif

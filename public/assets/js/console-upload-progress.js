@@ -144,6 +144,12 @@
         return !!(body && body.dataset.videoCompressAsync === '1');
     }
 
+    function uploadCompressionEnabled() {
+        const body = document.body;
+
+        return !!(body && body.dataset.uploadCompressionEnabled === '1');
+    }
+
     function hasVideoFile(files) {
         return files.some(function (f) {
             return (f.type || '').indexOf('video/') === 0;
@@ -197,20 +203,47 @@
             let statusText = 'Uploading…';
             let detail = meta.detail;
             if (pct >= 100) {
-                if (videoCompressAsync() && hasVideoFile(files)) {
-                    statusText = 'Saving…';
-                    detail = meta.detail + ' — compression runs in the queue after save (no need to wait here)';
-                } else {
-                    statusText = 'Compressing…';
-                    detail = (meta.total > 20 * 1024 * 1024)
-                        ? meta.detail + ' — ffmpeg may take 10–15 min; do not close or re-upload'
-                        : meta.detail + ' — compressing, please wait';
+                statusText = 'Saving…';
+                if (uploadCompressionEnabled() && hasVideoFile(files)) {
+                    if (videoCompressAsync()) {
+                        detail = meta.detail + ' — compression runs in the queue after save';
+                    } else {
+                        statusText = 'Compressing…';
+                        detail = (meta.total > 20 * 1024 * 1024)
+                            ? meta.detail + ' — ffmpeg may take 10–15 min; do not close or re-upload'
+                            : meta.detail + ' — compressing, please wait';
+                    }
                 }
             }
             setOverlayState(overlay, pct, ev.loaded, ev.total, statusText, detail, 'active');
         });
 
         xhr.addEventListener('load', function () {
+            const contentType = xhr.getResponseHeader('Content-Type') || '';
+
+            if (contentType.indexOf('application/json') !== -1) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.redirect) {
+                        setOverlayState(
+                            overlay,
+                            100,
+                            meta.total,
+                            meta.total,
+                            'Done',
+                            'Upload complete.',
+                            'success'
+                        );
+                        window.setTimeout(function () {
+                            window.location.href = data.redirect;
+                        }, 400);
+                        return;
+                    }
+                } catch (parseError) {
+                    // Fall through to HTML handling.
+                }
+            }
+
             if (xhr.status === 413) {
                 setOverlayState(
                     overlay,
@@ -245,7 +278,7 @@
                     return;
                 }
 
-                const asyncVideo = videoCompressAsync() && hasVideoFile(files);
+                const asyncVideo = uploadCompressionEnabled() && videoCompressAsync() && hasVideoFile(files);
                 setOverlayState(
                     overlay,
                     100,
@@ -253,15 +286,28 @@
                     meta.total,
                     'Done',
                     asyncVideo
-                        ? 'Saved. Video compression runs in the background (often 2–20 min). Read the message on the page before downloading.'
-                        : (meta.total > 20 * 1024 * 1024
-                            ? 'Upload and compression finished. You can download the smaller file now.'
-                            : 'Upload complete.'),
+                        ? 'Saved. Video compression runs in the background (often 2–20 min).'
+                        : 'Upload complete.',
                     'success'
                 );
                 window.setTimeout(function () {
                     window.location.href = xhr.responseURL || window.location.href;
                 }, 400);
+                return;
+            }
+
+            if (xhr.status === 419) {
+                setOverlayState(
+                    overlay,
+                    100,
+                    meta.total,
+                    meta.total,
+                    'Session expired',
+                    'Refresh the page and try again.',
+                    'error'
+                );
+                form.dataset.uploadInProgress = '0';
+                setFormDisabled(form, false);
                 return;
             }
 
@@ -300,7 +346,7 @@
 
         xhr.open(form.method || 'POST', form.action, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.setRequestHeader('Accept', 'text/html');
+        xhr.setRequestHeader('Accept', 'application/json, text/html');
         xhr.send(formData);
     }
 
