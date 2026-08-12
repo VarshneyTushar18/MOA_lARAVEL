@@ -13,7 +13,8 @@ return [
     |
     */
 
-    'enabled' => filter_var(env('UPLOAD_IMAGE_COMPRESSION', true), FILTER_VALIDATE_BOOLEAN),
+    // Temporarily disabled by default; set UPLOAD_IMAGE_COMPRESSION=true in .env to re-enable.
+    'enabled' => filter_var(env('UPLOAD_IMAGE_COMPRESSION', false), FILTER_VALIDATE_BOOLEAN),
 
     'jpeg_quality' => (int) env('UPLOAD_JPEG_QUALITY', 82),
 
@@ -44,7 +45,8 @@ return [
     |
     */
 
-    'video_enabled' => filter_var(env('UPLOAD_VIDEO_COMPRESSION', true), FILTER_VALIDATE_BOOLEAN),
+    // Temporarily disabled by default; set UPLOAD_VIDEO_COMPRESSION=true in .env to re-enable.
+    'video_enabled' => filter_var(env('UPLOAD_VIDEO_COMPRESSION', false), FILTER_VALIDATE_BOOLEAN),
 
     /*
     | Full path to ffmpeg.exe if it is not on your system PATH (common on Windows/XAMPP).
