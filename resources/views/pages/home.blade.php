@@ -107,7 +107,7 @@
     </div>
 </section>
 
-@if($homeMarquee && (filled($homeMarquee->title) || filled($homeMarquee->description)))
+@if(false && $homeMarquee && (filled($homeMarquee->title) || filled($homeMarquee->description)))
     @php
         $marqueeTextColor = $homeMarquee->text_color ?? '#ffffff';
         $marqueeBgColor = $homeMarquee->bg_color ?? '#162f6d';
@@ -376,7 +376,11 @@
                     <h3>{{ $enrollYourself->title ?? 'Enroll Yourself' }}</h3>
                 </div>
 
-                {!! $enrollYourself->description !!}
+                <p>
+                    This page helps you complete the screening process and share your details through the official survey form.
+                    Please review the instructions, fill in accurate information, and submit the form to support timely assessment
+                    and follow-up by the concerned team.
+                </p>
 
                 <div class="btn-block mt-3">
                     <a href="{{ $surveyFormUrl }}" class="primary-btn">

@@ -472,7 +472,11 @@
                     <span>Survey Information</span>
                     <h3>{{ $surveyData->title ?? 'Survey Data' }}</h3>
                 </div>
-                {!! $surveyData->description !!}
+                <p>
+                    This page provides survey information and gives direct access to the official screening form.
+                    Please complete the form with correct details and submit it to help the team with timely review,
+                    follow-up, and better planning of LTBI screening activities.
+                </p>
                 
                 @if(!empty($surveyData->videos[0]))
                 <div class="btn-block mt-3">
