@@ -165,25 +165,27 @@
 
     if (!function_exists('extractYoutubeVideoId')) {
         function extractYoutubeVideoId($url) {
-            if (!$url) return null;
-
-            $patterns = [
-                '/youtu\.be\/([A-Za-z0-9_-]{11})/',
-                '/youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})/',
-                '/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/',
-                '/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/',
-            ];
-
-            foreach ($patterns as $pattern) {
-                if (preg_match($pattern, $url, $matches)) {
-                    return $matches[1];
-                }
-            }
-
-            parse_str(parse_url($url, PHP_URL_QUERY), $queryParts);
-            return $queryParts['v'] ?? null;
+            return \App\Support\Youtube::videoId($url);
         }
     }
+
+    if (!function_exists('moaDisplaySortKey')) {
+        function moaDisplaySortKey($item): string
+        {
+            $order = (int) ($item->sort_order ?? 0);
+            if ($order <= 0) {
+                $order = 100000 + (int) ($item->id ?? 0);
+            }
+            return sprintf('%010d-%010d', $order, (int) ($item->id ?? 0));
+        }
+    }
+
+    $orderedFactsheetSections = $page->sections
+        ->filter(function ($section) {
+            return !($section->parent_id && (int) $section->parent_id !== (int) $section->id);
+        })
+        ->sortBy(fn ($item) => moaDisplaySortKey($item))
+        ->values();
 @endphp
 
 {{-- ================= PAGE HEADER (Like Second Layout) ================= --}}
@@ -202,7 +204,14 @@
     </div>
 </section>
 
+@foreach($orderedFactsheetSections as $section)
+
 {{-- ================= FACTSHEET HIGHLIGHTS ================= --}}
+@if($section->section_key === 'factsheet_highlights')
+@php
+    $factsheetHighlightsParent = $section;
+    $factsheetHighlights = collect($section->highlightItems)->sortBy(fn ($item) => moaDisplaySortKey($item))->values();
+@endphp
 @if($factsheetHighlights->count())
 <section class="factsheet-highlights">
     <div class="container">
@@ -211,7 +220,7 @@
                 @php
                     $imageUrl = factsheetHighlightImageUrl($highlight);
                     $youtubeId = !empty($highlight->youtube_url) ? extractYoutubeVideoId($highlight->youtube_url) : null;
-                    $youtubeThumb = $youtubeId ? 'https://img.youtube.com/vi/'.$youtubeId.'/hqdefault.jpg' : null;
+                    $youtubeThumb = \App\Support\Youtube::thumbnailUrl($youtubeId);
                     $fallbackImage = asset('assets/images/page-header-image.webp');
                     $coverImage = $youtubeThumb ?: ($imageUrl ?: $fallbackImage);
                     $videoUrl = factsheetHighlightVideoUrl($highlight);
@@ -252,11 +261,7 @@
                 </div>
                 <div class="modal-body">
                     @if($modalType === 'youtube')
-                        <div class="ratio ratio-16x9">
-                            <iframe src="https://www.youtube.com/embed/{{ $youtubeId }}"
-                                title="{{ $highlight->title ?? 'YouTube video' }}"
-                                allowfullscreen></iframe>
-                        </div>
+                        @include('partials.youtube-card', ['id' => $youtubeId, 'url' => $highlight->youtube_url])
                     @elseif($modalType === 'video')
                         <div class="factsheet-highlight-modal__media">
                             <video controls class="rounded factsheet-highlight-modal__video">
@@ -284,9 +289,12 @@
 @endforeach
 @endif
 
-
-
 {{-- ================= TRAINING / WORKSHOP SECTION ================= --}}
+@elseif($section->section_key === 'training_survey')
+@php
+    $trainingSurvey = $section;
+    $workshopSubs = collect($section->subsections)->sortBy(fn ($item) => moaDisplaySortKey($item))->values();
+@endphp
 @if($trainingSurvey)
 <section class="ntpcsection">
     <div class="container">
@@ -305,8 +313,8 @@
             <div class="col-lg-7">
 
                 {{-- Tabs --}}
-                <ul class="nav nav-tabs mb-3" id="workshopTabs" role="tablist">
-                    @foreach($trainingSurvey->subsections as $index => $sub)
+                <ul class="nav nav-tabs mb-3 workshop-tabs-scroll" id="workshopTabs" role="tablist">
+                    @foreach($workshopSubs as $index => $sub)
                     <li class="nav-item">
                         <button class="nav-link @if($index==0) active @endif"
                                 data-bs-toggle="tab"
@@ -321,7 +329,7 @@
                 {{-- Tab Content --}}
                 <div class="tab-content">
 
-                    @foreach($trainingSurvey->subsections as $index => $sub)
+                    @foreach($workshopSubs as $index => $sub)
                     <div class="tab-pane fade @if($index==0) show active @endif"
                          id="content-{{ $sub->id }}">
 
@@ -349,22 +357,23 @@
                         @endif
 
                         {{-- Videos Grid --}}
-                        @if(!empty($sub->videos))
+                        @php
+                            $youtubeUrls = collect($sub->videos ?? [])
+                                ->merge(($sub->media ?? collect())->where('type', 'youtube')->pluck('youtube_url'))
+                                ->filter()
+                                ->unique()
+                                ->values();
+                        @endphp
+                        @if($youtubeUrls->count())
                         <div class="row g-4">
-                            @foreach($sub->videos as $videoUrl)
+                            @foreach($youtubeUrls as $videoUrl)
                                 @php
-                                    $videoId = null;
-                                    if (preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/', $videoUrl, $matches)) {
-                                        $videoId = $matches[1];
-                                    }
+                                    $videoId = extractYoutubeVideoId($videoUrl);
                                 @endphp
 
                                 @if($videoId)
                                 <div class="col-md-6">
-                                    <div class="video-card shadow rounded">
-                                        <iframe src="https://www.youtube.com/embed/{{ $videoId }}"
-                                                allowfullscreen></iframe>
-                                    </div>
+                                    @include('partials.youtube-card', ['id' => $videoId, 'url' => $videoUrl])
                                 </div>
                                 @endif
                             @endforeach
@@ -383,6 +392,8 @@
 @endif
 
 {{-- ================= DIAGNOSTIC FACILITIES SECTION ================= --}}
+@elseif($section->section_key === 'diagnostic_facilities')
+@php $diagnosticFacilities = $section; @endphp
 @if($diagnosticFacilities)
 <section class="schemesection">
     <div class="container">
@@ -421,6 +432,8 @@
 @endif
 
 {{-- ================= MOU SECTION ================= --}}
+@elseif($section->section_key === 'mou')
+@php $mouSection = $section; @endphp
 @if($mouSection)
 <section class="ntpcsection">
     <div class="container">
@@ -460,6 +473,8 @@
 @endif
 
 {{-- ================= SURVEY DATA SECTION (Styled Like Scheme Section) ================= --}}
+@elseif($section->section_key === 'survey_data')
+@php $surveyData = $section; @endphp
 @if($surveyData)
 <section class="schemesection">
     <div class="container">
@@ -521,24 +536,32 @@
 </section>
 @endif
 
+@endif
+@endforeach
+
 @endsection
 
 
 @push('scripts')
 <script>
-var swiper = new Swiper(".mySwiper", {
-    slidesPerView: 2,
-    spaceBetween: 20,
-    loop: true,
-    pagination: {
-        el: ".swiper-pagination",
-        clickable: true,
-    },
-    breakpoints: {
-        0: { slidesPerView: 1 },
-        576: { slidesPerView: 2 },
-        992: { slidesPerView: 2 }
-    }
+document.querySelectorAll(".mySwiper").forEach(function (el) {
+    var paginationEl = el.querySelector(".swiper-pagination");
+    new Swiper(el, {
+        slidesPerView: 1,
+        spaceBetween: 16,
+        loop: el.querySelectorAll(".swiper-slide").length > 2,
+        pagination: paginationEl ? {
+            el: paginationEl,
+            clickable: true,
+            dynamicBullets: true,
+            dynamicMainBullets: 5
+        } : false,
+        breakpoints: {
+            0: { slidesPerView: 1 },
+            576: { slidesPerView: 2 },
+            992: { slidesPerView: 2 }
+        }
+    });
 });
 
 const lightbox = GLightbox({

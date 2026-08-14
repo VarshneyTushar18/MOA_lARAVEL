@@ -10,16 +10,19 @@
 
 <section class="w3-padding">
 
-    <h2>Add Section for {{ $page->title }}</h2>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h2 class="mb-0">Add Section for {{ $page->title }}</h2>
+        <a href="/console/pages/sections/{{ $page->id }}/list" class="btn btn-secondary btn-sm">Back to Sections</a>
+    </div>
 
-    <form method="post" action="/console/pages/sections/{{ $page->id }}/add" enctype="multipart/form-data" novalidate class="w3-margin-bottom">
+    <form method="post" action="/console/pages/sections/{{ $page->id }}/add" enctype="multipart/form-data" novalidate class="console-form card">
 
         @csrf
 
         {{-- Section Key --}}
         <div class="w3-margin-bottom">
             <label for="section_key">Section Key:</label>
-            <input type="text" name="section_key" id="section_key" value="{{ old('section_key') }}" required>
+            <input type="text" class="form-control" name="section_key" id="section_key" value="{{ old('section_key') }}" required>
             <div class="w3-small">Examples: hero_banner, home_marquee, pm_yojna, roles, moa, aiia, rntcp</div>
             @if($errors->first('section_key'))
                 <br><span class="w3-text-red">{{ $errors->first('section_key') }}</span>
@@ -30,7 +33,7 @@
             {{-- Parent Section --}}
             <div class="w3-margin-bottom">
                 <label for="parent_id">Parent Section (optional):</label>
-                <select name="parent_id" id="parent_id" class="w3-input">
+                <select name="parent_id" id="parent_id" class="form-control">
                     <option value="">-- None --</option>
                     @foreach($page->sections as $section)
                         <option value="{{ $section->id }}" {{ old('parent_id') == $section->id ? 'selected' : '' }}>
@@ -44,7 +47,7 @@
             {{-- Type --}}
             <div class="w3-margin-bottom">
                 <label for="type">Section Type:</label>
-                <select name="type" id="type" class="w3-input">
+                <select name="type" id="type" class="form-control">
                     <option value="single" {{ old('type') == 'single' ? 'selected' : '' }}>Single</option>
                     <option value="banner" {{ old('type') == 'banner' ? 'selected' : '' }}>Banner</option>
                     <option value="personal" {{ old('type') == 'personal' ? 'selected' : '' }}>Personal</option>
@@ -55,13 +58,13 @@
         {{-- Title --}}
         <div class="w3-margin-bottom">
             <label for="title">Title:</label>
-            <input type="text" name="title" id="title" value="{{ old('title') }}">
+            <input type="text" class="form-control" name="title" id="title" value="{{ old('title') }}">
         </div>
 
         {{-- Description --}}
         <div class="w3-margin-bottom">
             <label for="description">Description:</label>
-            <textarea name="description" id="description">{{ old('description') }}</textarea>
+            <textarea class="form-control" name="description" id="description" rows="8">{{ old('description') }}</textarea>
         </div>
 
         @if($page->slug === 'home')
@@ -69,13 +72,13 @@
             <div class="w3-margin-bottom">
                 <label for="text_color">Text Color (optional, home marquee only):</label>
                 <input type="color" id="text_color_picker" value="{{ old('text_color', '#ffffff') }}" onchange="document.getElementById('text_color').value=this.value">
-                <input type="text" name="text_color" id="text_color" value="{{ old('text_color') }}" placeholder="#FFFFFF">
+                <input type="text" class="form-control" style="max-width:160px;display:inline-block;" name="text_color" id="text_color" value="{{ old('text_color') }}" placeholder="#FFFFFF">
             </div>
 
             <div class="w3-margin-bottom">
                 <label for="bg_color">Background Color (optional, home marquee only):</label>
                 <input type="color" id="bg_color_picker" value="{{ old('bg_color', '#162f6d') }}" onchange="document.getElementById('bg_color').value=this.value">
-                <input type="text" name="bg_color" id="bg_color" value="{{ old('bg_color') }}" placeholder="#162F6D">
+                <input type="text" class="form-control" style="max-width:160px;display:inline-block;" name="bg_color" id="bg_color" value="{{ old('bg_color') }}" placeholder="#162F6D">
             </div>
         </div>
         @endif
@@ -84,38 +87,36 @@
             {{-- Single Image --}}
             <div class="w3-margin-bottom">
                 <label for="image">Image (optional):</label>
-                <input type="file" name="image" id="image">
+                <input type="file" class="form-control" name="image" id="image">
             </div>
 
             {{-- Multiple Images --}}
             <div class="w3-margin-bottom">
                 <label for="images">Additional Images (multiple)</label>
-                <input type="file" name="images[]" id="images" multiple>
+                <input type="file" class="form-control" name="images[]" id="images" multiple>
             </div>
 
             <div class="w3-margin-bottom">
                 <label for="pdf">Upload PDF (optional)</label>
-                <input type="file" name="pdfs[]" multiple>
+                <input type="file" class="form-control" name="pdfs[]" multiple>
+                <label class="w3-small w3-margin-top">PDF title (optional)</label>
+                <input type="text" class="form-control mb-2" name="new_pdf_title" value="{{ old('new_pdf_title') }}" placeholder="Short title">
+                <label class="w3-small">Short description (optional)</label>
+                <textarea class="form-control" name="new_pdf_description" rows="3" placeholder="Short description shown on the website">{{ old('new_pdf_description') }}</textarea>
             </div>
 
             <div class="w3-margin-bottom">
                 <label for="videos">Upload Videos (MP4, MOV, AVI — max {{ $maxVideoMb }} MB each)</label>
-                <input type="file" name="videos[]" id="videos" multiple accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
-                <p class="w3-small w3-text-grey">Upload progress appears at the bottom of the screen. For large videos, start the server with <code>php artisan serve:large</code> (same UI as <code>php artisan serve</code>).</p>
-                <label class="w3-margin-top">YouTube URL (optional)</label>
-                <textarea name="youtube_links[]" class="w3-input" placeholder="https://www.youtube.com/watch?v=..."></textarea>
+                <input type="file" class="form-control" name="videos[]" id="videos" multiple accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
+                <p class="w3-small">Upload progress appears at the bottom of the screen.</p>
+                <label class="w3-margin-top" for="youtube_links_text">YouTube URL (optional)</label>
+                <textarea name="youtube_links_text" id="youtube_links_text" class="form-control" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;One link per line"></textarea>
+                <p class="w3-small">Paste one YouTube link per line.</p>
             </div>
 
             <div class="w3-margin-bottom">
                 <label>Upload Audio Files</label>
-                <input type="file" name="audios[]" multiple>
-            </div>
-
-
-            {{-- Sort Order --}}
-            <div class="w3-margin-bottom">
-                <label for="sort_order">Sort Order:</label>
-                <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', 0) }}">
+                <input type="file" class="form-control" name="audios[]" multiple>
             </div>
         </div>
 
@@ -158,11 +159,15 @@
             <button type="button" id="add_highlight_item" class="w3-button w3-blue">Add Highlight</button>
         </div>
 
-        <button type="submit" class="w3-button w3-green">Add Section</button>
+        <div class="w3-margin-bottom">
+            <label for="sort_order">Sort Order:</label>
+            <input type="number" class="form-control" name="sort_order" id="sort_order" value="{{ old('sort_order', 0) }}">
+            <p class="w3-small">Example: set 2 and this section becomes 2; the old 2 becomes 3. Or use ↑ ↓ on the list.</p>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Section</button>
 
     </form>
-
-    <a href="/console/pages/sections/{{ $page->id }}/list">Back to Sections</a>
 
 </section>
 

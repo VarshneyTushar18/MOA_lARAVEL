@@ -11,7 +11,9 @@ class PageSectionMedia extends Model
         'page_section_id',
         'type',
         'file_path',
-        'youtube_url'
+        'youtube_url',
+        'title',
+        'description',
     ];
 
     public function section()

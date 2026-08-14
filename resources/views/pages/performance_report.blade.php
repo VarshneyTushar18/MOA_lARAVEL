@@ -4,7 +4,13 @@
 
 @php
     $grouped = $page->sections->groupBy('section_key');
-    $reportSections = $page->sections->sortBy('sort_order')->values();
+    $reportSections = $page->sections->sortBy(function ($section) {
+        $order = (int) ($section->sort_order ?? 0);
+        if ($order <= 0) {
+            $order = 100000 + (int) $section->id;
+        }
+        return sprintf('%010d-%010d', $order, (int) $section->id);
+    })->values();
 @endphp
 
 
@@ -39,9 +45,9 @@
             @foreach($reportSections as $section)
             @php
                 $pdfs = $section->media->where('type', 'pdf');
-                $hasImage = !empty($section->image) && \Illuminate\Support\Facades\Storage::disk('public')->exists($section->image);
+                $hasImage = !empty($section->image);
             @endphp
-            @continue(!$pdfs->count() && !$hasImage)
+            @continue(!$pdfs->count() && !$hasImage && !filled($section->description))
             <div class="accordion-item">
                 <h2 class="accordion-header" id="performanceHeading{{ $section->id }}">
                     <button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#performanceCollapse{{ $section->id }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="performanceCollapse{{ $section->id }}">
@@ -70,10 +76,7 @@
             @foreach($pdfs as $pdf)
 
                 @php
-                    $path = null;
-                    if (!empty($pdf->file_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($pdf->file_path)) {
-                        $path = $pdf->file_path;
-                    }
+                    $path = $pdf->file_path ?: null;
                 @endphp
 
                 @if($path)

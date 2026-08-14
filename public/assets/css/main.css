@@ -163,10 +163,10 @@ header form input[type="text"] {
     border: 1px solid var(--dim-grey);
     padding: 8px 46px 8px 16px;
     border-radius: 6px;
-    width: 100%;
     outline: none;
-    min-width: 260px;
-    width: 260px;
+    width: 100%;
+    max-width: 260px;
+    min-width: 0;
     font-size: 16px;
 }
 
@@ -507,6 +507,14 @@ header .navbar-nav {
     object-fit: cover;
 }
 
+.img-card--short {
+    height: 258px;
+}
+
+.img-card--tall {
+    height: 530px;
+}
+
 .green-shape {
     position: absolute;
     width: 120px;
@@ -844,6 +852,17 @@ header .navbar-nav {
 
 .mySwiper {
     margin: 0px 50px;
+}
+
+.workshop-tabs-scroll {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.workshop-tabs-scroll .nav-item {
+    flex: 0 0 auto;
 }
 
 .swiper-pagination-bullet-active {
@@ -1339,6 +1358,59 @@ footer {
     box-shadow: 0 6px 18px rgba(0,0,0,0.15);
 }
 
+.youtube-card {
+    background: #111;
+    overflow: hidden;
+}
+
+.youtube-card__thumb {
+    position: relative;
+    display: block;
+    background: #111;
+}
+
+.youtube-card__thumb img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+}
+
+.youtube-card__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.youtube-card__play i {
+    width: 68px;
+    height: 48px;
+    border-radius: 14px;
+    background: #ff0000;
+    color: #fff;
+    font-size: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.youtube-card__embed {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+}
+
+.youtube-card__embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 .video-wrapper {
     position: relative;
     width: 100%;
@@ -1374,16 +1446,14 @@ footer {
         padding-top: 8px;
     }
 
-    header .col-lg-4:nth-child(1) {
-        width: 50%;
+    header .col-lg-4:nth-child(1),
+    header .col-lg-4:nth-child(3) {
+        width: auto;
     }
 
     header .col-lg-4:nth-child(2) {
         order: 3;
-    }
-
-    header .col-lg-4:nth-child(3) {
-        width: 50%;
+        width: 100%;
     }
 
     header form {
@@ -1770,12 +1840,11 @@ footer {
         padding-bottom: 1.5rem !important;
     }
 
-    footer .col-lg-3:nth-child(2) {
-        width: 50%;
-    }
-
-    footer .col-lg-3:nth-child(3) {
-        width: 50%;
+    footer .col-lg-3:nth-child(2),
+    footer .col-lg-3:nth-child(3),
+    footer .col-lg-3:nth-child(1),
+    footer .col-lg-3:nth-child(4) {
+        width: 100%;
     }
 
     .footer-widget ul li {
@@ -2166,4 +2235,392 @@ footer {
 
 .faq-ui__body {
     color: #4b4b4b;
+}
+
+/* ========== Responsive layout (phones / tablets) ========== */
+
+img,
+svg {
+    max-width: 100%;
+    height: auto;
+}
+
+video,
+iframe {
+    max-width: 100%;
+}
+
+.bannersection .carousel-item img {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: cover;
+}
+
+.acsm-poster-img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+}
+
+.acsm-gallery-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--light-grey);
+    border: 1px solid var(--dim-grey);
+    border-radius: 12px;
+    min-height: 240px;
+    height: 100%;
+    padding: 14px;
+    text-decoration: none;
+    overflow: hidden;
+}
+
+.acsm-gallery-card img {
+    max-width: 100%;
+    max-height: 420px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+.acsm-gallery--few .acsm-gallery-card {
+    min-height: 320px;
+}
+
+.acsm-gallery--grid .acsm-gallery-card {
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+    padding: 10px;
+}
+
+.acsm-gallery--grid .acsm-gallery-card img {
+    max-height: 100%;
+    max-width: 100%;
+}
+
+.patient-tabs-scroll {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.patient-tabs-scroll .nav-item {
+    flex: 0 0 auto;
+}
+
+.ntpcsection video[width="100%"],
+.ntpcsection iframe[width="100%"],
+section video[width="100%"],
+section iframe[width="100%"] {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+}
+
+.highlight-box {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.accordion-button {
+    white-space: normal;
+    text-align: left;
+}
+
+.page-header .breadcrumbs {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 991.98px) {
+    header {
+        margin-bottom: 0;
+    }
+
+    header .logo-block img {
+        width: min(200px, 70vw);
+    }
+
+    header .search-block {
+        text-align: right;
+        width: 100%;
+    }
+
+    header form input[type="text"] {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    header .navbar {
+        justify-content: flex-end;
+        padding: 6px 10px;
+        width: 100%;
+    }
+
+    header .navbar-toggler {
+        color: #fff;
+        border: 0;
+    }
+
+    header .navbar-toggler::before {
+        content: 'Menu';
+        font-size: 16px;
+        margin-right: 6px;
+    }
+
+    header .navbar-toggler:focus {
+        box-shadow: none;
+    }
+
+    .navbar-toggler-icon {
+        filter: invert(1);
+        opacity: 1;
+    }
+
+    header .navbar-collapse {
+        width: 100%;
+    }
+
+    header .navbar-nav {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    header .navbar li a {
+        padding: 12px 16px;
+        font-size: 16px;
+        line-height: 22px;
+    }
+
+    .moacontentblock {
+        width: 100%;
+    }
+
+    .img-card--short,
+    .img-card--tall {
+        height: auto;
+        aspect-ratio: 4 / 3;
+    }
+
+    .img-card--tall {
+        aspect-ratio: 3 / 4;
+    }
+
+    .banner-img {
+        height: auto;
+        max-height: 420px;
+        aspect-ratio: 16 / 9;
+    }
+
+    .yojnasection,
+    .moasection,
+    .aiiasection,
+    .rntcpsection,
+    .ntpcsection,
+    .contactsection,
+    .schemesection,
+    .projectdetailsection {
+        padding: 40px 0;
+    }
+
+    .info-card,
+    .quote-card {
+        padding: 24px 22px;
+    }
+
+    .contactsection .contact-details,
+    .contactsection .map-block iframe,
+    .form-block {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .form-block {
+        margin-top: 24px;
+    }
+
+    .page-header {
+        padding: 48px 0;
+        border-radius: 0;
+    }
+
+    .legal-links {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    footer .footer-widget {
+        margin-bottom: 28px;
+    }
+
+    .footer-logo {
+        width: min(240px, 100%);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .mySwiper {
+        margin: 0;
+    }
+
+    .swiper {
+        padding-bottom: 40px;
+    }
+
+    .swiper-pagination-bullet {
+        width: 8px;
+        height: 8px;
+    }
+
+    .swiper-pagination-bullets-dynamic {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    header .social-media {
+        padding-top: 8px;
+    }
+
+    header .logo-block {
+        margin: 8px 0 4px;
+        text-align: center;
+    }
+
+    header form {
+        padding-top: 8px;
+    }
+
+    .bannersection .carousel-item img {
+        max-height: 42vh;
+    }
+
+    .acsm-poster-img {
+        height: 180px;
+    }
+
+    .acsm-gallery--few .acsm-gallery-card {
+        min-height: 0;
+        padding: 10px;
+    }
+
+    .acsm-gallery--few .acsm-gallery-card img {
+        width: 100%;
+        max-height: 72vh;
+    }
+
+    .acsm-gallery--grid .acsm-gallery-card {
+        aspect-ratio: 4 / 3;
+    }
+
+    .highlight-box {
+        padding: 16px 18px;
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .highlight-box h4 {
+        font-size: 26px;
+        line-height: 1.1;
+    }
+
+    .moasection .image-area .col-6 {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+
+    .moasection .image-area .img-card {
+        height: auto !important;
+        margin-bottom: 12px;
+    }
+
+    .moasection .image-area .img-card img {
+        aspect-ratio: 4 / 3;
+        height: auto;
+    }
+
+    .rolsresponsibilitysection .col-lg-4 {
+        width: 100%;
+    }
+
+    .primary-btn {
+        padding: 10px 20px;
+        font-size: 15px;
+    }
+
+    .ntpcsection .card.p-4,
+    .ntpcsection .card.p-3 {
+        padding: 1rem !important;
+    }
+
+    .patient-tabs-scroll .nav-link {
+        font-size: 14px;
+        padding: 8px 12px;
+        white-space: nowrap;
+    }
+
+    .footer-bottom .copyright p,
+    .footer-bottom .legal-links {
+        text-align: center;
+        justify-content: center;
+    }
+
+    .footer-widget .icon {
+        width: auto;
+    }
+
+    .footer-widget .context {
+        width: auto;
+        flex: 1;
+    }
+
+    .swiper-slide img {
+        height: 200px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    footer .col-12.col-lg-3,
+    footer [class*="col-lg-3"] {
+        width: 100% !important;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    footer .col-12.col-md-6,
+    footer [class*="col-md-6"] {
+        width: 50% !important;
+        max-width: 50%;
+        flex: 0 0 50%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    header .logo-block img {
+        width: min(170px, 60vw);
+    }
+
+    .page-header h1 {
+        font-size: 22px;
+        line-height: 30px;
+    }
+
+    .page-header .breadcrumbs li a,
+    .page-header .breadcrumbs li {
+        font-size: 14px;
+    }
+
+    .acsm-poster-img {
+        height: 140px;
+    }
+
+    .carousel-control-next-icon,
+    .carousel-control-prev-icon {
+        width: 2rem;
+        height: 2rem;
+    }
 }

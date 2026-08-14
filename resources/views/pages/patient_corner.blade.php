@@ -34,7 +34,7 @@
         @endif
 
         {{-- ================= TABS NAVIGATION ================= --}}
-        <ul class="nav nav-tabs mb-4" id="patientTabs" role="tablist">
+        <ul class="nav nav-tabs mb-4 patient-tabs-scroll" id="patientTabs" role="tablist">
 
             <li class="nav-item">
                 <button class="nav-link active"

@@ -56,12 +56,16 @@ Route::get('/factsheet', function() {
 });
 
 Route::get('/acsm_iec', function() {
-    $page = \App\Models\Page::where('slug','acsm_iec')->first();
+    $page = \App\Models\Page::where('slug','acsm_iec')
+        ->with(['sections.images', 'sections.media', 'sections.subsections.images', 'sections.subsections.media'])
+        ->firstOrFail();
     return view('pages.acsm_iec', compact('page'));
 });
 
 Route::get('/best_practices', function () {
-    $page = \App\Models\Page::where('slug','best_practices')->firstOrFail();
+    $page = \App\Models\Page::where('slug','best_practices')
+        ->with(['sections.images', 'sections.media', 'sections.subsections.images', 'sections.subsections.media'])
+        ->firstOrFail();
     return view('pages.best_practices', compact('page'));
 });
 
@@ -71,7 +75,9 @@ Route::get('/patient_corner', function () {
 });
 
 Route::get('/performance_report', function () {
-    $page = \App\Models\Page::where('slug','performance_report')->first();
+    $page = \App\Models\Page::where('slug','performance_report')
+        ->with(['sections.images', 'sections.media'])
+        ->firstOrFail();
     return view('pages.performance_report', compact('page'));
 });
 
@@ -103,8 +109,11 @@ Route::post('/console/pages/sections/{page:id}/add', [App\Http\Controllers\PageS
 Route::get('/console/pages/sections/{page:id}/edit/{section:id}', [App\Http\Controllers\PageSectionsController::class, 'editForm'])->where('page', '[0-9]+')->where('section', '[0-9]+')->middleware('auth');
 Route::post('/console/pages/sections/{page:id}/edit/{section:id}', [App\Http\Controllers\PageSectionsController::class, 'edit'])->where('page', '[0-9]+')->where('section', '[0-9]+')->middleware('auth');
 Route::get('/console/pages/sections/{page:id}/delete/{section:id}', [App\Http\Controllers\PageSectionsController::class, 'delete'])->where('page', '[0-9]+')->where('section', '[0-9]+')->middleware('auth');
+Route::get('/console/pages/sections/{page:id}/move/{section:id}/{direction}', [App\Http\Controllers\PageSectionsController::class, 'move'])->where('page', '[0-9]+')->where('section', '[0-9]+')->where('direction', 'up|down')->middleware('auth');
 
 Route::get('/console/pages/sections/image/delete/{image}', [PageSectionsController::class, 'deleteImage'])->middleware('auth');
+Route::get('/console/pages/sections/{page:id}/image/delete-main/{section:id}', [PageSectionsController::class, 'deleteMainImage'])->where('page', '[0-9]+')->where('section', '[0-9]+')->middleware('auth');
+Route::get('/console/pages/sections/media/delete/{media}', [PageSectionsController::class, 'deleteMedia'])->middleware('auth');
 
 // Store patient data
 Route::post('/patients/store', [PatientController::class, 'store'])->name('patients.store');

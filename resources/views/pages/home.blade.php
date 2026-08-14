@@ -221,7 +221,7 @@
                                 @php
                                     $imgPath = $ministry->images[$i]->image; // direct path
                                 @endphp
-                                <div class="img-card shadow-sm mb-3" style="height:258px;">
+                                <div class="img-card img-card--short shadow-sm mb-3">
                                     <img src="{{ asset('storage/'.$imgPath) }}" class="img-fluid" alt="">
                                 </div>
                             @endif
@@ -234,7 +234,7 @@
                             @php
                                 $imgPath = $ministry->images[2]->image; // direct path
                             @endphp
-                            <div class="img-card shadow-sm" style="height:530px;">
+                            <div class="img-card img-card--tall shadow-sm">
                                 <img src="{{ asset('storage/'.$imgPath) }}" class="img-fluid" alt="">
                             </div>
                         @endif

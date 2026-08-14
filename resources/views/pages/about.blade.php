@@ -18,6 +18,37 @@
             return null;
         }
     }
+
+    if (!function_exists('resolveStoragePath')) {
+        function resolveStoragePath($path) {
+            if (!$path) return null;
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            return $disk->exists($path) ? $path : $path;
+        }
+    }
+
+    $reservedAboutKeys = ['project_detail', 'scheme', 'ntpc', 'faq', 'faqs', 'frequently_asked_questions'];
+    $extraAboutSections = $page->sections
+        ->filter(function ($section) use ($reservedAboutKeys) {
+            if ($section->parent_id && (int) $section->parent_id !== (int) $section->id) {
+                return false;
+            }
+            if (in_array($section->section_key, $reservedAboutKeys, true)) {
+                return false;
+            }
+            return filled($section->description)
+                || !empty($section->image)
+                || $section->images->count()
+                || $section->media->count();
+        })
+        ->sortBy(function ($section) {
+            $order = (int) ($section->sort_order ?? 0);
+            if ($order <= 0) {
+                $order = 100000 + (int) $section->id;
+            }
+            return sprintf('%010d-%010d', $order, (int) $section->id);
+        })
+        ->values();
 @endphp
 
 {{-- Page Header --}}
@@ -217,26 +248,47 @@
 </section>
 @endif
 
+@if($extraAboutSections->count())
+<section class="ntpcsection mt-5 mb-5">
+    <div class="container">
+        <div class="accordion" id="aboutExtraAccordion">
+            @foreach($extraAboutSections as $section)
+                @include('partials.acsm-section', [
+                    'section' => $section,
+                    'isFirst' => $loop->first,
+                    'accordionParent' => 'aboutExtraAccordion',
+                ])
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
+
 @endsection
 @push('scripts')
 <script>
-var swiper = new Swiper(".mySwiper", {
-    slidesPerView: 2,
-    spaceBetween: 20,
-    loop: true,
-    pagination: {
-        el: ".swiper-pagination",
-        clickable: true,
-    },
-    navigation: {
-        nextEl: ".custom-next",
-        prevEl: ".custom-prev",
-    },
-    breakpoints: {
-        0: { slidesPerView: 1 },
-        576: { slidesPerView: 2 },
-        992: { slidesPerView: 2 }
-    }
+document.querySelectorAll(".mySwiper").forEach(function (el) {
+    var paginationEl = el.querySelector(".swiper-pagination");
+    new Swiper(el, {
+        slidesPerView: 1,
+        spaceBetween: 16,
+        loop: el.querySelectorAll(".swiper-slide").length > 2,
+        pagination: paginationEl ? {
+            el: paginationEl,
+            clickable: true,
+            dynamicBullets: true,
+            dynamicMainBullets: 5
+        } : false,
+        navigation: {
+            nextEl: ".custom-next",
+            prevEl: ".custom-prev",
+        },
+        breakpoints: {
+            0: { slidesPerView: 1 },
+            576: { slidesPerView: 2 },
+            992: { slidesPerView: 2 }
+        }
+    });
 });
 
 const lightbox = GLightbox({

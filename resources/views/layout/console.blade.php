@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Admin Console | My Portfolio</title>
+    <title>Admin Console | MOA</title>
 
     <link rel="icon" href="{{ asset('assets/images/favicon.png') }}" type="image/png">
     <link rel="shortcut icon" href="{{ asset('assets/images/favicon.png') }}" type="image/png">
@@ -89,8 +89,108 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1400px;
+            width: 100%;
             margin: auto;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .console-actions {
+            white-space: nowrap;
+            min-width: 150px;
+        }
+
+        .console-actions .btn {
+            display: inline-block;
+            margin: 0 4px 4px 0;
+            vertical-align: middle;
+        }
+
+        .console-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin: 2px;
+        }
+
+        .console-audio {
+            max-width: 140px;
+            height: 32px;
+        }
+
+        table.datatable th,
+        table.datatable td {
+            vertical-align: middle !important;
+            padding: 10px 12px !important;
+        }
+
+        table.datatable td:last-child,
+        table.datatable th:last-child {
+            white-space: nowrap;
+        }
+
+        .console-form label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .console-form input[type="text"],
+        .console-form input[type="url"],
+        .console-form input[type="email"],
+        .console-form input[type="number"],
+        .console-form input[type="password"],
+        .console-form select,
+        .console-form textarea,
+        .console-form input[type="file"] {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 15px;
+            line-height: 1.45;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .console-form textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .console-form textarea#description,
+        .console-form textarea[rows="8"] {
+            min-height: 180px;
+        }
+
+        .console-form input[type="number"] {
+            max-width: 160px;
+        }
+
+        .console-form input[type="color"] {
+            width: 48px;
+            height: 38px;
+            padding: 2px;
+            display: inline-block;
+            vertical-align: middle;
+            max-width: 48px;
+        }
+
+        .console-form .form-hint,
+        .console-form .w3-small {
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .console-form .console-preview img {
+            max-width: 240px;
+            height: auto;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
         }
 
         .card {
@@ -285,13 +385,24 @@
     <script>
     $(document).ready(function () {
         $('.datatable').each(function () {
+            if ($.fn.DataTable && $.fn.DataTable.isDataTable(this)) {
+                return;
+            }
+            var freezeOrder = $(this).hasClass('datatable-frozen-order');
             new DataTable(this, {
-                pageLength: 10,
-                responsive: true
+                pageLength: freezeOrder ? 50 : 10,
+                scrollX: true,
+                autoWidth: false,
+                ordering: !freezeOrder,
+                order: [],
+                columnDefs: [
+                    { orderable: false, targets: -1 }
+                ]
             });
         });
     });
 </script>
+    @stack('scripts')
 
 </body>
 </html>

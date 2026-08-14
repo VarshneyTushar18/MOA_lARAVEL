@@ -16,7 +16,7 @@
 
 <!-- GLightbox CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
-    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v=20260813yt1">
     @stack('head')
 </head>
 
@@ -24,8 +24,8 @@
 
     <header>
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+            <div class="row align-items-center g-2">
+                <div class="col-6 col-lg-4 order-1">
                     <div class="social-media">
                         <ul>
                             <li><a href="#"><img src="{{ asset('assets/images/facebook.svg') }}" alt="Facebook"></a></li>
@@ -35,14 +35,14 @@
                         </ul>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="col-12 col-lg-4 order-3 order-lg-2">
                     <div class="logo-block">
                         <a href="/">
                             <img src="{{ asset('assets/images/Main-logo.png') }}" alt="Logo" class="img-fluid">
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
+                <div class="col-6 col-lg-4 order-2 order-lg-3">
                     <div class="search-block">
                         <form action="{{ route('patient.search') }}" method="GET">
                             <input type="text" name="q" placeholder="Search" minlength="2" maxlength="255" value="{{ old('q', request('q')) }}" title="At least 2 characters">
@@ -55,7 +55,7 @@
             </div>
 
             <div class="row pt-2">
-                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <div class="col-12">
                     <nav class="navbar navbar-expand-lg">
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                             data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false"
@@ -101,31 +101,31 @@
     <footer>
         <div class="container pb-5">
             <div class="row pb-3">
-                <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="footer-widget">
                         <div class="footer-logo">
-                            <a href="#">
-                                <img src="assets/images/Main-logo.png" alt="Ministry of Ayush" class="img-fluid">
+                            <a href="/">
+                                <img src="{{ asset('assets/images/Main-logo.png') }}" alt="Ministry of Ayush" class="img-fluid">
                             </a>
                         </div>
 
                         <div class="sponsors-logos d-flex align-items-center gap-1 w-100">
-                            <img src="assets/images/aiia.webp" alt="" class="img-fluid">
-                            <img src="assets/images/pm-yojna.webp" alt="" class="img-fluid">
-                            <img src="assets/images/nam.webp" alt="Ministry of Ayush" class="img-fluid">
+                            <img src="{{ asset('assets/images/aiia.webp') }}" alt="" class="img-fluid">
+                            <img src="{{ asset('assets/images/pm-yojna.webp') }}" alt="" class="img-fluid">
+                            <img src="{{ asset('assets/images/nam.webp') }}" alt="Ministry of Ayush" class="img-fluid">
                         </div>
 
                         <div class="social-media">
                             <ul>
-                                <li><a href="#"><img src="assets/images/facebook.svg" alt="Facebook"></a></li>
-                                <li><a href="#"><img src="assets/images/linkedin.svg" alt="Linkedin"></a></li>
-                                <li><a href="#"><img src="assets/images/instagram.svg" alt="Instagram"></a></li>
-                                <li><a href="#"><img src="assets/images/twitter-x.svg" alt="Twitter X"></a></li>
+                                <li><a href="#"><img src="{{ asset('assets/images/facebook.svg') }}" alt="Facebook"></a></li>
+                                <li><a href="#"><img src="{{ asset('assets/images/linkedin.svg') }}" alt="Linkedin"></a></li>
+                                <li><a href="#"><img src="{{ asset('assets/images/instagram.svg') }}" alt="Instagram"></a></li>
+                                <li><a href="#"><img src="{{ asset('assets/images/twitter-x.svg') }}" alt="Twitter X"></a></li>
                             </ul>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="footer-widget">
                         <h4>Useful Links</h4>
                         <ul>
@@ -138,7 +138,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="footer-widget">
                         <h4>Important Links</h4>
                         <ul>
@@ -151,7 +151,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="footer-widget text-white">
                         <h4>Contact Information</h4>
                         <div class="contact-address pb-3 d-flex gap-3">
@@ -186,12 +186,12 @@
         <div class="footer-bottom text-white">
             <div class="container">
                 <div class="row">
-                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                    <div class="col-12 col-md-6">
                         <div class="copyright">
                             <p class="mb-0">© Copyright 2026 Ministry of Ayush. All Rights Reserved</p>
                         </div>
                     </div>
-                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                    <div class="col-12 col-md-6">
                         <ul class="legal-links">
                             <li><a href="#">Terms & Conditions</a></li>
                             <li><a href="#">Privacy Policy</a></li>

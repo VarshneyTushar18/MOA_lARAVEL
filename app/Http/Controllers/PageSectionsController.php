@@ -6,6 +6,7 @@ use App\Models\Page;
 use App\Models\PageSection;
 use App\Models\PageSectionHighlightItem;
 use App\Models\PageSectionImage;
+use App\Models\PageSectionMedia;
 use App\Services\CompressedUploadStorage;
 use App\Support\UploadLimits;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class PageSectionsController extends Controller
     {
         return view('pages_console.sections.list', [
             'page' => $page,
-            'sections' => $page->sections()->with(['images', 'media', 'parent'])->orderBy('sort_order')->get(),
+            'sections' => $this->sectionsInDisplayOrder($page)->load(['images', 'media', 'parent']),
         ]);
     }
 
@@ -45,6 +46,8 @@ class PageSectionsController extends Controller
                 'image' => 'nullable|image',
                 'images.*' => 'nullable|image',
                 'pdfs.*' => 'nullable|file|mimes:pdf',
+                'new_pdf_title' => 'nullable|string|max:255',
+                'new_pdf_description' => 'nullable|string|max:2000',
                 'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
                 'youtube_links.*' => 'nullable|url',
                 'highlight_items' => 'nullable|array',
@@ -69,7 +72,8 @@ class PageSectionsController extends Controller
         $isHomeMarquee = $page->slug === 'home' && $attributes['section_key'] === 'home_marquee';
         $section->text_color = $isHomeMarquee ? ($attributes['text_color'] ?? null) : null;
         $section->bg_color = $isHomeMarquee ? ($attributes['bg_color'] ?? null) : null;
-        $section->sort_order = $attributes['sort_order'] ?? 0;
+        $requestedOrder = (int) ($attributes['sort_order'] ?? 0);
+        $section->sort_order = 0;
         $section->parent_id = $attributes['parent_id'] ?? null;
 
         if (request()->hasFile('image')) {
@@ -101,6 +105,8 @@ class PageSectionsController extends Controller
                 $section->media()->create([
                     'type' => 'pdf',
                     'file_path' => $path,
+                    'title' => request('new_pdf_title'),
+                    'description' => request('new_pdf_description'),
                 ]);
             }
         }
@@ -127,16 +133,10 @@ class PageSectionsController extends Controller
             }
         }
 
-        // YouTube
-        if (request('youtube_links')) {
-            foreach (request('youtube_links') as $link) {
-                if ($link) {
-                    $section->media()->create([
-                        'type' => 'youtube',
-                        'youtube_url' => $link,
-                    ]);
-                }
-            }
+        $this->addYoutubeLinksFromRequest($section);
+
+        if ($requestedOrder > 0) {
+            $this->insertSectionAtPosition($page, $section, $requestedOrder);
         }
 
         return $this->sectionSaveRedirect($page, 'Section added');
@@ -145,7 +145,9 @@ class PageSectionsController extends Controller
     // Show edit form
     public function editForm(Page $page, PageSection $section)
     {
-        $section->load(['highlightItems', 'media']);
+        $section->load(['highlightItems', 'media', 'images']);
+        $this->syncLegacyYoutubeVideosToMedia($section);
+        $section->load('media');
         $page->load('sections');
 
         return view('pages_console.sections.edit', [
@@ -168,6 +170,11 @@ class PageSectionsController extends Controller
                 'image' => 'nullable|image',
                 'images.*' => 'nullable|image',
                 'pdfs.*' => 'nullable|file|mimes:pdf',
+                'pdf_meta' => 'nullable|array',
+                'pdf_meta.*.title' => 'nullable|string|max:255',
+                'pdf_meta.*.description' => 'nullable|string|max:2000',
+                'new_pdf_title' => 'nullable|string|max:255',
+                'new_pdf_description' => 'nullable|string|max:2000',
                 'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
                 'youtube_links.*' => 'nullable|url',
                 'highlight_items' => 'nullable|array',
@@ -192,7 +199,13 @@ class PageSectionsController extends Controller
         $isHomeMarquee = $page->slug === 'home' && $attributes['section_key'] === 'home_marquee';
         $section->text_color = $isHomeMarquee ? ($attributes['text_color'] ?? null) : null;
         $section->bg_color = $isHomeMarquee ? ($attributes['bg_color'] ?? null) : null;
-        $section->sort_order = $attributes['sort_order'] ?? 0;
+        $requestedOrder = null;
+        if (request()->exists('sort_order') && request()->input('sort_order') !== null && request()->input('sort_order') !== '') {
+            $requestedOrder = (int) request()->input('sort_order');
+            if ($requestedOrder <= 0) {
+                $section->sort_order = 0;
+            }
+        }
         $section->parent_id = $attributes['parent_id'] ?? null;
 
         // Replace main image only if new one uploaded
@@ -235,9 +248,13 @@ class PageSectionsController extends Controller
                 $section->media()->create([
                     'type' => 'pdf',
                     'file_path' => $path,
+                    'title' => request('new_pdf_title'),
+                    'description' => request('new_pdf_description'),
                 ]);
             }
         }
+
+        $this->syncPdfMeta($section);
 
         /*
         |--------------------------------------------------------------------------
@@ -287,28 +304,7 @@ class PageSectionsController extends Controller
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | YouTube Links
-        |--------------------------------------------------------------------------
-        */
-
-        if (request('youtube_links')) {
-
-            // delete old youtube links
-            foreach ($section->media()->where('type', 'youtube')->get() as $media) {
-                $media->delete();
-            }
-
-            foreach (request('youtube_links') as $link) {
-                if ($link) {
-                    $section->media()->create([
-                        'type' => 'youtube',
-                        'youtube_url' => $link,
-                    ]);
-                }
-            }
-        }
+        $this->addYoutubeLinksFromRequest($section);
 
         /*
         |--------------------------------------------------------------------------
@@ -323,6 +319,10 @@ class PageSectionsController extends Controller
                     'image' => $path,
                 ]);
             }
+        }
+
+        if ($requestedOrder !== null && $requestedOrder > 0) {
+            $this->insertSectionAtPosition($page, $section, $requestedOrder);
         }
 
         return $this->sectionSaveRedirect($page, 'Changes saved successfully');
@@ -363,12 +363,74 @@ class PageSectionsController extends Controller
             ->with('message', 'Section deleted');
     }
 
+    public function move(Page $page, PageSection $section, string $direction)
+    {
+        if ((int) $section->page_id !== (int) $page->id) {
+            abort(404);
+        }
+
+        if (! in_array($direction, ['up', 'down'], true)) {
+            abort(404);
+        }
+
+        $sections = $this->sectionsInDisplayOrder($page)->values();
+        $index = $sections->search(fn ($row) => (int) $row->id === (int) $section->id);
+
+        if ($index === false) {
+            abort(404);
+        }
+
+        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
+        if ($swapWith < 0 || $swapWith >= $sections->count()) {
+            return back()->with('message', 'Section is already at the '.($direction === 'up' ? 'top' : 'bottom'));
+        }
+
+        $items = $sections->all();
+        [$items[$index], $items[$swapWith]] = [$items[$swapWith], $items[$index]];
+
+        foreach (array_values($items) as $i => $row) {
+            $newOrder = $i + 1;
+            if ((int) $row->sort_order !== $newOrder) {
+                $row->sort_order = $newOrder;
+                $row->save();
+            }
+        }
+
+        return back()->with('message', 'Website order updated');
+    }
+
     public function deleteImage(PageSectionImage $image)
     {
         Storage::disk('public')->delete($image->image);
         $image->delete();
 
         return back()->with('message', 'Image deleted');
+    }
+
+    public function deleteMedia(PageSectionMedia $media)
+    {
+        if ($media->file_path) {
+            Storage::disk('public')->delete($media->file_path);
+        }
+
+        $media->delete();
+
+        return back()->with('message', 'File deleted');
+    }
+
+    public function deleteMainImage(Page $page, PageSection $section)
+    {
+        if ($section->page_id !== $page->id) {
+            abort(404);
+        }
+
+        if ($section->image) {
+            Storage::disk('public')->delete($section->image);
+            $section->image = null;
+            $section->save();
+        }
+
+        return back()->with('message', 'Main image deleted');
     }
 
     private function isFactsheetHighlightsChild(Page $page, array $attributes, ?PageSection $section = null): bool
@@ -591,6 +653,132 @@ class PageSectionsController extends Controller
         $notice = CompressedUploadStorage::videoCompressionNotice();
 
         return $notice ? $message.' '.$notice : $message;
+    }
+
+    private function syncPdfMeta(PageSection $section): void
+    {
+        $meta = request('pdf_meta', []);
+        if (! is_array($meta) || $meta === []) {
+            return;
+        }
+
+        foreach ($meta as $mediaId => $data) {
+            $media = $section->media()->where('type', 'pdf')->where('id', $mediaId)->first();
+            if (! $media || ! is_array($data)) {
+                continue;
+            }
+            $media->title = isset($data['title']) ? (trim((string) $data['title']) ?: null) : $media->title;
+            $media->description = isset($data['description']) ? (trim((string) $data['description']) ?: null) : $media->description;
+            $media->save();
+        }
+    }
+
+    private function youtubeLinksFromRequest(): array
+    {
+        $links = [];
+        foreach ((array) request('youtube_links', []) as $link) {
+            $links[] = trim((string) $link);
+        }
+        foreach (preg_split('/\r\n|\r|\n/', (string) request('youtube_links_text', '')) as $line) {
+            $links[] = trim($line);
+        }
+
+        $clean = [];
+        foreach ($links as $link) {
+            if ($link === '') {
+                continue;
+            }
+            if (! preg_match('#^https?://#i', $link)) {
+                $link = 'https://'.$link;
+            }
+            if (! filter_var($link, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+            $clean[] = $link;
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    private function addYoutubeLinksFromRequest(PageSection $section): void
+    {
+        foreach ($this->youtubeLinksFromRequest() as $link) {
+            $exists = $section->media()
+                ->where('type', 'youtube')
+                ->where('youtube_url', $link)
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+            $section->media()->create([
+                'type' => 'youtube',
+                'youtube_url' => $link,
+            ]);
+        }
+    }
+
+    private function syncLegacyYoutubeVideosToMedia(PageSection $section): void
+    {
+        $legacy = $section->videos;
+        if (! is_array($legacy) || count($legacy) === 0) {
+            return;
+        }
+
+        $copied = false;
+        foreach ($legacy as $url) {
+            $url = trim((string) $url);
+            if ($url === '' || ! preg_match('/youtu\.?be/i', $url)) {
+                continue;
+            }
+            $exists = $section->media()
+                ->where('type', 'youtube')
+                ->where('youtube_url', $url)
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+            $section->media()->create([
+                'type' => 'youtube',
+                'youtube_url' => $url,
+            ]);
+            $copied = true;
+        }
+
+        if ($copied) {
+            $section->forceFill(['videos' => null])->save();
+        }
+    }
+
+    private function sectionsInDisplayOrder(Page $page)
+    {
+        return $page->sections()
+            ->orderByRaw('CASE WHEN sort_order IS NULL OR sort_order <= 0 THEN 1 ELSE 0 END')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function insertSectionAtPosition(Page $page, PageSection $section, int $position): void
+    {
+        $sections = $this->sectionsInDisplayOrder($page)
+            ->reject(fn ($row) => (int) $row->id === (int) $section->id)
+            ->values();
+
+        $index = max(0, $position - 1);
+        if ($index > $sections->count()) {
+            $index = $sections->count();
+        }
+
+        $section->refresh();
+        $sections->splice($index, 0, [$section]);
+
+        foreach ($sections->values() as $i => $row) {
+            $newOrder = $i + 1;
+            if ((int) $row->sort_order !== $newOrder) {
+                $row->sort_order = $newOrder;
+                $row->save();
+            }
+        }
     }
 
     private function sectionSaveRedirect(Page $page, string $message)

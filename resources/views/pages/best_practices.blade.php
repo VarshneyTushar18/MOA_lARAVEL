@@ -68,17 +68,8 @@
                         </div>
                         @endforeach
                         @foreach($success->media->where('type','pdf') as $file)
-                            @php $extension = strtolower(pathinfo($file->file_path, PATHINFO_EXTENSION)); @endphp
                         <div class="col-md-4">
-                            <div class="card shadow-sm p-4 text-center h-100">
-                                <h6 class="mb-3">{{ strtoupper($extension) }} File</h6>
-                                <a href="{{ asset('storage/'.$file->file_path) }}" target="_blank" class="btn btn-primary btn-sm mb-2">
-                                    View {{ strtoupper($extension) }}
-                                </a>
-                                <a href="{{ asset('storage/'.$file->file_path) }}" download class="btn btn-outline-secondary btn-sm">
-                                    Download
-                                </a>
-                            </div>
+                            @include('partials.pdf-card', ['pdf' => $file, 'section' => $success, 'heading' => strtoupper(pathinfo($file->file_path, PATHINFO_EXTENSION)).' File'])
                         </div>
                         @endforeach
                     </div>
@@ -111,15 +102,9 @@
                             @endif
                         @endforeach
                         @foreach($videos->media->where('type','youtube') as $yt)
-                            @php
-                                preg_match('/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/', $yt->youtube_url, $m);
-                                $id = $m[1] ?? null;
-                            @endphp
-                            @if($id)
                             <div class="col-md-6 col-lg-4">
-                                <iframe width="100%" height="300" src="https://www.youtube.com/embed/{{ $id }}" allowfullscreen></iframe>
+                                @include('partials.youtube-card', ['url' => $yt->youtube_url])
                             </div>
-                            @endif
                         @endforeach
                     </div>
                 </div>
