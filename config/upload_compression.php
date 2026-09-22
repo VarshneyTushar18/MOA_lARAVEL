@@ -69,14 +69,15 @@ return [
     | Maximum video upload size (Laravel validation)
     |--------------------------------------------------------------------------
     |
-    | PHP post_max_size and upload_max_filesize must be at least this large
-    | (use composer run serve or serve-large-uploads.bat for local dev).
+    | Set UPLOAD_MAX_VIDEO_MB=0 to use only the PHP/nginx upload ceiling
+    | (no extra app limit). PHP post_max_size and upload_max_filesize must
+    | still allow the file through.
     |
     */
 
-    'max_video_mb' => (int) env('UPLOAD_MAX_VIDEO_MB', 200),
+    'max_video_mb' => (int) env('UPLOAD_MAX_VIDEO_MB', 0),
 
-    'max_video_kilobytes' => (int) env('UPLOAD_MAX_VIDEO_MB', 200) * 1024,
+    'max_video_kilobytes' => (int) env('UPLOAD_MAX_VIDEO_MB', 0) * 1024,
 
     /*
     |--------------------------------------------------------------------------

@@ -9,6 +9,42 @@ use Illuminate\Support\Facades\Storage;
 
 class CureController extends Controller
 {
+    public function index()
+    {
+        $records = CurePatient::orderByDesc('id')->paginate(50);
+
+        return view('cure_console.list', compact('records'));
+    }
+
+    public function show($id)
+    {
+        $record = CurePatient::findOrFail($id);
+
+        return view('cure_console.show', compact('record'));
+    }
+
+    public function consoleFile($id)
+    {
+        $record = CurePatient::findOrFail($id);
+
+        if (! $record->file_path || ! Storage::disk('local')->exists($record->file_path)) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->response($record->file_path);
+    }
+
+    public function consoleDownload($id)
+    {
+        $record = CurePatient::findOrFail($id);
+
+        if (! $record->file_path || ! Storage::disk('local')->exists($record->file_path)) {
+            return back()->with('message', 'File not found on disk.');
+        }
+
+        return Storage::disk('local')->download($record->file_path);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -16,7 +52,7 @@ class CureController extends Controller
             'ltbi_no' => ['required', 'string', 'regex:/^[0-9]{1,12}$/'],
             'cc_no' => ['nullable', 'required_if:type,cc', 'string', 'regex:/^[0-9]{1,12}$/'],
             'tr_no' => ['nullable', 'required_if:type,tr', 'string', 'regex:/^[0-9]{1,12}$/'],
-            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg', 'max:2048'],
+            'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg'],
         ], [
             'ltbi_no.regex' => 'LTBI number must be numeric only.',
             'cc_no.regex' => 'CC number must be numeric only.',
@@ -35,6 +71,14 @@ class CureController extends Controller
         }
 
         $access_code = $ltbi_last4.$last3;
+
+        if (CurePatient::where('access_code', $access_code)->exists()) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'ltbi_no' => 'This patient document is already uploaded (Access Code: '.$access_code.'). You cannot upload it again.',
+                ]);
+        }
 
         // Store File
         $file = $request->file('file');

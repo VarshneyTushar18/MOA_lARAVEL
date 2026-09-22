@@ -164,6 +164,24 @@
         return /alert-danger|Upload too large|exceeds the PHP|dropped your upload|must be \d+ MB or smaller/i.test(html);
     }
 
+    function firstValidationMessage(payload) {
+        if (!payload || typeof payload !== 'object') {
+            return null;
+        }
+
+        if (payload.errors && typeof payload.errors === 'object') {
+            const keys = Object.keys(payload.errors);
+            for (let i = 0; i < keys.length; i += 1) {
+                const messages = payload.errors[keys[i]];
+                if (Array.isArray(messages) && messages[0]) {
+                    return messages[0];
+                }
+            }
+        }
+
+        return payload.message || null;
+    }
+
     function uploadForm(form) {
         const files = collectFiles(form);
         const meta = describeFiles(files);
@@ -188,6 +206,24 @@
         }
 
         const formData = new FormData(form);
+        const keyInput = form.querySelector('[name="section_key"]');
+        const sectionKey = keyInput ? String(keyInput.value || '').trim() : '';
+
+        if (sectionKey !== 'home_marquee') {
+            [...formData.keys()].forEach(function (name) {
+                if (name.indexOf('marquee_links') === 0 || name === 'text_color' || name === 'bg_color') {
+                    formData.delete(name);
+                }
+            });
+        }
+
+        if (sectionKey !== 'factsheet_highlights') {
+            [...formData.keys()].forEach(function (name) {
+                if (name.indexOf('highlight_items') === 0) {
+                    formData.delete(name);
+                }
+            });
+        }
 
         showOverlay(overlay);
         setFormDisabled(form, true);
@@ -204,16 +240,6 @@
             let detail = meta.detail;
             if (pct >= 100) {
                 statusText = 'Saving…';
-                if (uploadCompressionEnabled() && hasVideoFile(files)) {
-                    if (videoCompressAsync()) {
-                        detail = meta.detail + ' — compression runs in the queue after save';
-                    } else {
-                        statusText = 'Compressing…';
-                        detail = (meta.total > 20 * 1024 * 1024)
-                            ? meta.detail + ' — ffmpeg may take 10–15 min; do not close or re-upload'
-                            : meta.detail + ' — compressing, please wait';
-                    }
-                }
             }
             setOverlayState(overlay, pct, ev.loaded, ev.total, statusText, detail, 'active');
         });
@@ -278,16 +304,13 @@
                     return;
                 }
 
-                const asyncVideo = uploadCompressionEnabled() && videoCompressAsync() && hasVideoFile(files);
                 setOverlayState(
                     overlay,
                     100,
                     meta.total,
                     meta.total,
                     'Done',
-                    asyncVideo
-                        ? 'Saved. Video compression runs in the background (often 2–20 min).'
-                        : 'Upload complete.',
+                    'Upload complete.',
                     'success'
                 );
                 window.setTimeout(function () {
@@ -304,6 +327,40 @@
                     meta.total,
                     'Session expired',
                     'Refresh the page and try again.',
+                    'error'
+                );
+                form.dataset.uploadInProgress = '0';
+                setFormDisabled(form, false);
+                return;
+            }
+
+            if (xhr.status === 422) {
+                let detail = 'The server rejected the form. Fix the issue below and try again.';
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    const message = firstValidationMessage(data);
+                    if (message) {
+                        detail = message;
+                    }
+                } catch (parseError) {
+                    if (responseLooksLikeValidationError(xhr.responseText)) {
+                        document.open();
+                        document.write(xhr.responseText);
+                        document.close();
+                        form.dataset.uploadInProgress = '0';
+                        setFormDisabled(form, false);
+                        hideOverlay(overlay);
+                        return;
+                    }
+                }
+
+                setOverlayState(
+                    overlay,
+                    100,
+                    meta.total,
+                    meta.total,
+                    'Upload not saved',
+                    detail,
                     'error'
                 );
                 form.dataset.uploadInProgress = '0';

@@ -193,6 +193,22 @@
             border: 1px solid #e5e7eb;
         }
 
+        .console-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .console-page-header .console-page-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
         .card {
             background: #fff;
             border-radius: 10px;
@@ -342,6 +358,7 @@
                     </span>
 
                     <a href="/console/dashboard">Dashboard</a>
+                    <a href="/console/footer">Footer</a>
                     <a href="/">View Site</a>
                     <a href="/console/logout" class="w3-text-red"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
                 @else
@@ -381,7 +398,7 @@
         <span class="d-inline-block px-3">© Copyright 2026 Ministry of Ayush. All Rights Reserved</span>
     </footer>
 
-    <script src="{{ asset('assets/js/console-upload-progress.js') }}"></script>
+    <script src="{{ asset('assets/js/console-upload-progress.js') }}?v=20260921marquee2"></script>
     <script>
     $(document).ready(function () {
         $('.datatable').each(function () {

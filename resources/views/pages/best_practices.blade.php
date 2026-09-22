@@ -128,7 +128,7 @@
                     <div class="row g-4">
                         @foreach($photos->images as $img)
                         <div class="col-6 col-md-4 col-lg-3">
-                            <img src="{{ asset('storage/'.$img->image) }}" class="img-fluid rounded shadow">
+                            <img src="{{ asset('storage/'.$img->image) }}" class="img-fluid rounded shadow" loading="lazy" decoding="async">
                         </div>
                         @endforeach
                     </div>

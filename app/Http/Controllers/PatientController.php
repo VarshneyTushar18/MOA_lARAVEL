@@ -38,8 +38,15 @@ class PatientController extends Controller
     // Show list in admin
     public function index()
     {
-        $patients = Patient::orderBy('id', 'asc')->paginate(10); // or ->get() if not paginating
+        $patients = Patient::orderByDesc('id')->paginate(50);
         return view('patient_console.list', compact('patients'));
+    }
+
+    public function show($id)
+    {
+        $patient = Patient::findOrFail($id);
+
+        return view('patient_console.show', compact('patient'));
     }
 
     public function search(Request $request)
@@ -93,7 +100,7 @@ class PatientController extends Controller
     public function uploadOpd(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ], [
             'file.mimes' => 'Upload a spreadsheet (.xlsx, .xls, or .csv).',
         ]);

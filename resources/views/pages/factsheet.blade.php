@@ -12,7 +12,7 @@
     $factsheetHighlightsParent = $grouped->get('factsheet_highlights', collect())->first();
     $factsheetHighlights = $factsheetHighlightsParent ? ($factsheetHighlightsParent->highlightItems ?? collect()) : collect();
     $surveyFormPath = route('survey.form', [], false);
-    $surveyFormUrl = rtrim(config('app.url') ?: url('/'), '/') . $surveyFormPath;
+    $surveyFormUrl = request()->getSchemeAndHttpHost() . $surveyFormPath;
     $surveyQrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($surveyFormUrl);
 
     if (!function_exists('resolveStorageImage')) {
@@ -233,7 +233,7 @@
                         type="button"
                         data-highlight-modal="{{ $modalId }}">
                     <span class="factsheet-highlight-item__thumb">
-                        <img src="{{ $coverImage }}" alt="{{ $highlight->title ?? 'Highlight' }}">
+                        <img src="{{ $coverImage }}" alt="{{ $highlight->title ?? 'Highlight' }}" loading="lazy" decoding="async">
                     </span>
                     <span class="factsheet-highlight-item__label">{{ $highlight->title ?? 'Highlight' }}</span>
                 </button>
@@ -346,6 +346,8 @@
                                            data-gallery="gallery-{{ $sub->id }}">
                                             <img src="{{ asset('storage/'.$imagePath) }}"
                                                  class="img-fluid"
+                                                 loading="lazy"
+                                                 decoding="async"
                                                  alt="">
                                         </a>
                                     </div>
@@ -421,6 +423,8 @@
                     @if($diagPath)
                         <img src="{{ asset('storage/'.$diagPath) }}"
                              class="img-fluid shadow rounded"
+                             loading="lazy"
+                             decoding="async"
                              alt="Diagnostic Facilities">
                     @endif
                 @endif
@@ -461,6 +465,8 @@
                     @if($mouPath)
                         <img src="{{ asset('storage/'.$mouPath) }}"
                              class="img-fluid shadow rounded"
+                             loading="lazy"
+                             decoding="async"
                              alt="MOU Image">
                     @endif
                 @endif

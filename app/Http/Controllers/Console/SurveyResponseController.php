@@ -29,11 +29,9 @@ class SurveyResponseController extends Controller
         $request->validate([
             'file' => [
                 'required',
-                File::types(['csv', 'xlsx', 'xls'])
-                    ->max(15360),
+                File::types(['csv', 'xlsx', 'xls']),
             ],
         ], [
-            'file.max' => 'File too large. Max 15 MB. Use .csv, .xlsx, or .xls.',
             'file.mimes' => 'Wrong file type. Use .csv, .xlsx, or .xls only.',
             'file.mimetypes' => 'Wrong file type. Use .csv, .xlsx, or .xls only.',
         ]);

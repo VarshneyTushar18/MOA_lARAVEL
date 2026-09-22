@@ -13,7 +13,7 @@ class HomeController extends Controller
     public function index()
     {
         $page = Page::where('slug', 'home')
-                    ->with(['sections.images', 'sections.subsections', 'sections.media'])
+                    ->with(['sections.images', 'sections.subsections.media', 'sections.media'])
                     ->first();
 
         $liveStats = [
@@ -36,5 +36,15 @@ public function contactUs()
 {
     $page = Page::with('sections.subsections', 'sections.images')->where('slug', 'contact-us')->first();
     return view('pages.contact', compact('page'));
+}
+
+public function pmTbMuktBharat()
+{
+    return view('pages.pm-tb-mukt-bharat');
+}
+
+public function aboutRntcp()
+{
+    return view('pages.rntcp');
 }
 }

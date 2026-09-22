@@ -16,33 +16,29 @@
 
 <!-- GLightbox CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
-    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v=20260813yt1">
+    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v=20260922profiledesktop">
     @stack('head')
 </head>
 
 <body>
 
     <header>
-        <div class="container">
-            <div class="row align-items-center g-2">
-                <div class="col-6 col-lg-4 order-1">
-                    <div class="social-media">
-                        <ul>
-                            <li><a href="#"><img src="{{ asset('assets/images/facebook.svg') }}" alt="Facebook"></a></li>
-                            <li><a href="#"><img src="{{ asset('assets/images/linkedin.svg') }}" alt="Linkedin"></a></li>
-                            <li><a href="#"><img src="{{ asset('assets/images/instagram.svg') }}" alt="Instagram"></a></li>
-                            <li><a href="#"><img src="{{ asset('assets/images/twitter-x.svg') }}" alt="Twitter X"></a></li>
-                        </ul>
-                    </div>
+        <div class="container-fluid header-container">
+            <div class="header-brand-row py-2">
+                <div class="header-brand-left">
+                    <a href="/">
+                        <img src="{{ asset('assets/images/ministry-ayush-logo.png') }}?v=20260921moalogo" alt="Government of India, Ministry of Ayush" class="ministry-logo">
+                    </a>
                 </div>
-                <div class="col-12 col-lg-4 order-3 order-lg-2">
-                    <div class="logo-block">
-                        <a href="/">
-                            <img src="{{ asset('assets/images/Main-logo.png') }}" alt="Logo" class="img-fluid">
-                        </a>
-                    </div>
+                <div class="header-brand-right">
+                    <a href="/">
+                        <img src="{{ asset('assets/images/aiia-header-logo.png') }}?v=20260922aiiaone" alt="All India Institute of Ayurveda" class="aiia-header-logo">
+                    </a>
                 </div>
-                <div class="col-6 col-lg-4 order-2 order-lg-3">
+            </div>
+
+            <div class="row align-items-center header-search-row pb-2">
+                <div class="col-12">
                     <div class="search-block">
                         <form action="{{ route('patient.search') }}" method="GET">
                             <input type="text" name="q" placeholder="Search" minlength="2" maxlength="255" value="{{ old('q', request('q')) }}" title="At least 2 characters">
@@ -96,111 +92,11 @@
         </div>
     </header>
 
-    @yield('content')
+    <main class="page-content">
+        @yield('content')
+    </main>
 
-    <footer>
-        <div class="container pb-5">
-            <div class="row pb-3">
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="footer-widget">
-                        <div class="footer-logo">
-                            <a href="/">
-                                <img src="{{ asset('assets/images/Main-logo.png') }}" alt="Ministry of Ayush" class="img-fluid">
-                            </a>
-                        </div>
-
-                        <div class="sponsors-logos d-flex align-items-center gap-1 w-100">
-                            <img src="{{ asset('assets/images/aiia.webp') }}" alt="" class="img-fluid">
-                            <img src="{{ asset('assets/images/pm-yojna.webp') }}" alt="" class="img-fluid">
-                            <img src="{{ asset('assets/images/nam.webp') }}" alt="Ministry of Ayush" class="img-fluid">
-                        </div>
-
-                        <div class="social-media">
-                            <ul>
-                                <li><a href="#"><img src="{{ asset('assets/images/facebook.svg') }}" alt="Facebook"></a></li>
-                                <li><a href="#"><img src="{{ asset('assets/images/linkedin.svg') }}" alt="Linkedin"></a></li>
-                                <li><a href="#"><img src="{{ asset('assets/images/instagram.svg') }}" alt="Instagram"></a></li>
-                                <li><a href="#"><img src="{{ asset('assets/images/twitter-x.svg') }}" alt="Twitter X"></a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="footer-widget">
-                        <h4>Useful Links</h4>
-                        <ul>
-                            <li><a href="/about">About us</a></li>
-                            <li><a href="/factsheet">Fact Sheet</a></li>
-                            <li><a href="/acsm_iec">ACSM / IEC</a></li>
-                            <li><a href="/performance_report">Performance report</a></li>
-                            <li><a href="/best_practices">Best Practices</a></li>
-                            <li><a href="/patient_corner">Patient Corner</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="footer-widget">
-                        <h4>Important Links</h4>
-                        <ul>
-                            <li><a href="#">National Ayush Mission (NAM)</a></li>
-                            <li><a href="#">Central Sector Schemes</a></li>
-                            <li><a href="#">Public Grievances</a></li>
-                            <li><a href="#">Explore What's new</a></li>
-                            <li><a href="#">Explore Press Release</a></li>
-                            <li><a href="#">Explore Vacancy</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="footer-widget text-white">
-                        <h4>Contact Information</h4>
-                        <div class="contact-address pb-3 d-flex gap-3">
-                            <div class="icon">
-                                <i class="ri-map-pin-line"></i>
-                            </div>
-                            <div class="context">
-                                All India Institute of Ayurveda (AIIA) Mathura Road, Gautam Puri
-                                Sarita Vihar, Delhi - 110076
-                            </div>
-                        </div>
-                        <div class="contact-phone pb-3 d-flex gap-3 align-items-center">
-                            <div class="icon">
-                                <i class="ri-phone-line"></i>
-                            </div>
-                            <div class="context">
-                                Phone No : 011-26950401/402
-                            </div>
-                        </div>
-                        <div class="contact-mail pb-3 d-flex gap-3 align-items-center">
-                            <div class="icon">
-                                <i class="ri-mail-send-line"></i>
-                            </div>
-                            <div class="context">
-                                Email Id : contact-us@aiia.gov.in
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom text-white">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12 col-md-6">
-                        <div class="copyright">
-                            <p class="mb-0">© Copyright 2026 Ministry of Ayush. All Rights Reserved</p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <ul class="legal-links">
-                            <li><a href="#">Terms & Conditions</a></li>
-                            <li><a href="#">Privacy Policy</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
+    @include('partials.site-footer')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>

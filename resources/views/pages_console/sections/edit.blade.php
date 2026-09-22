@@ -59,22 +59,117 @@
 
         {{-- Description --}}
         <div class="w3-margin-bottom">
-            <label for="description">Description:</label>
-            <textarea class="form-control" name="description" id="description" rows="8">{{ old('description', $section->description) }}</textarea>
+            <label for="description">
+                @if($page->slug === 'home' && $section->section_key === 'gallery' && !$section->parent_id)
+                    Button Text:
+                @else
+                    Description:
+                @endif
+            </label>
+            <textarea class="form-control" name="description" id="description" rows="{{ ($page->slug === 'home' && $section->section_key === 'gallery' && !$section->parent_id) ? 2 : 8 }}">{{ old('description', $section->description) }}</textarea>
+            @if($page->slug === 'home' && $section->section_key === 'gallery' && !$section->parent_id)
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>Home Photo Gallery hero:</strong> Main image = large preview on Home. Description = button text.
+                    Album categories are managed under <strong>Manage Pages → Gallery</strong>.
+                </p>
+            @elseif($page->slug === 'home' && $section->section_key === 'rntcp' && !$section->parent_id)
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>Home → RNTCP block:</strong> This description appears on the left (with Read More).
+                    Add child sections with <strong>Parent = rntcp</strong> for each objective shown in the right-side list.
+                </p>
+            @elseif($page->slug === 'home' && $section->section_key === 'home_marquee' && !$section->parent_id)
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>Home marquee:</strong> Add scrolling links below. Each link needs a label plus a website URL or uploaded PDF. Optional colors control bar styling.
+                </p>
+            @elseif($page->slug === 'home' && $section->section_key === 'hero_banner' && !$section->parent_id)
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>Hero banner carousel:</strong> Slides show as Banner image → Video → Additional images. Use sort numbers below to fine-tune order within each group.
+                </p>
+            @elseif($page->slug === 'gallery' && !$section->parent_id)
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>Gallery (unified):</strong> Section key <code>gallery_single</code> = single photo(s) for the top area on Home.
+                    Any other key = categorized album (shown below on Home + on <code>/gallery</code>).
+                    Main image = cover. Additional images = photos inside the album.
+                </p>
+            @elseif($page->slug === 'home' && $section->parent && $section->parent->section_key === 'rntcp')
+                <p class="w3-small w3-text-grey mt-2 mb-0">
+                    <strong>RNTCP objective:</strong> This text appears as a bullet in the Objectives box on the home page.
+                    Optional <strong>Title</strong> above shows as a bold line before the description.
+                </p>
+            @endif
         </div>
 
-        @if($page->slug === 'home')
+        @if($page->slug === 'home' && $section->section_key === 'home_marquee')
         <div id="section_form_marquee_colors">
             <div class="w3-margin-bottom">
                 <label for="text_color">Text Color (optional, home marquee only):</label>
-                <input type="color" id="text_color_picker" value="{{ old('text_color', $section->text_color ?? '#ffffff') }}" onchange="document.getElementById('text_color').value=this.value">
-                <input type="text" class="form-control d-inline-block" style="max-width:160px;display:inline-block;" name="text_color" id="text_color" value="{{ old('text_color', $section->text_color) }}" placeholder="#FFFFFF">
+                <input type="color" id="text_color_picker" value="{{ old('text_color', $section->text_color ?? '#333333') }}" onchange="document.getElementById('text_color').value=this.value">
+                <input type="text" class="form-control d-inline-block" style="max-width:160px;display:inline-block;" name="text_color" id="text_color" value="{{ old('text_color', $section->text_color) }}" placeholder="#333333">
             </div>
 
             <div class="w3-margin-bottom">
                 <label for="bg_color">Background Color (optional, home marquee only):</label>
-                <input type="color" id="bg_color_picker" value="{{ old('bg_color', $section->bg_color ?? '#162f6d') }}" onchange="document.getElementById('bg_color').value=this.value">
-                <input type="text" class="form-control d-inline-block" style="max-width:160px;display:inline-block;" name="bg_color" id="bg_color" value="{{ old('bg_color', $section->bg_color) }}" placeholder="#162F6D">
+                <input type="color" id="bg_color_picker" value="{{ old('bg_color', $section->bg_color ?? '#f3f3f3') }}" onchange="document.getElementById('bg_color').value=this.value">
+                <input type="text" class="form-control d-inline-block" style="max-width:160px;display:inline-block;" name="bg_color" id="bg_color" value="{{ old('bg_color', $section->bg_color) }}" placeholder="#F3F3F3">
+            </div>
+        </div>
+
+        <div id="section_form_marquee_links" style="display:none;">
+            <h4>Marquee Links</h4>
+            <p class="w3-small">Each row needs a label plus either a website URL or an uploaded PDF (or both — PDF opens when clicked).</p>
+            <div id="marquee_links_wrapper">
+                @foreach($marqueeLinks as $idx => $marqueeLink)
+                    <div class="w3-border w3-padding w3-margin-bottom marquee-link-item" data-index="{{ $idx }}">
+                        <input type="hidden" name="marquee_links[{{ $idx }}][id]" value="{{ $marqueeLink['id'] ?? '' }}">
+                        <div class="w3-margin-bottom">
+                            <label>Link Label</label>
+                            <input type="text" class="w3-input" name="marquee_links[{{ $idx }}][title]" value="{{ $marqueeLink['title'] ?? '' }}">
+                        </div>
+                        <div class="w3-margin-bottom">
+                            <label>Website URL (optional if PDF uploaded)</label>
+                            <input type="url" class="w3-input" name="marquee_links[{{ $idx }}][url]" value="{{ $marqueeLink['url'] ?? '' }}" placeholder="https://...">
+                        </div>
+                        <div class="w3-margin-bottom">
+                            <label>Upload PDF (optional)</label>
+                            @if(!empty($marqueeLink['existing_pdf']))
+                                <div class="mb-2">
+                                    <a href="{{ asset('storage/'.$marqueeLink['existing_pdf']) }}" target="_blank">View current PDF</a>
+                                </div>
+                            @endif
+                            <input type="file" class="w3-input" name="marquee_links[{{ $idx }}][file]" accept="application/pdf,.pdf">
+                        </div>
+                        <div class="w3-margin-bottom">
+                            <label>Sort Order</label>
+                            <input type="number" class="w3-input" name="marquee_links[{{ $idx }}][sort_order]" value="{{ $marqueeLink['sort_order'] ?? 0 }}">
+                        </div>
+                        <button type="button" class="w3-button w3-red remove-marquee-link">Remove</button>
+                    </div>
+                @endforeach
+            </div>
+            <button type="button" id="add_marquee_link" class="w3-button w3-blue">Add Link</button>
+        </div>
+        @endif
+
+        @if($page->slug === 'home' && $section->section_key === 'hero_banner' && !empty($carouselSlides))
+        <div class="w3-margin-bottom">
+            <h4>Carousel Slide Order</h4>
+            <p class="w3-small text-muted">Lower sort numbers appear first on the home page. Put your video as 1, then photos as 2, 3, etc.</p>
+            <div id="carousel_slides_wrapper">
+                @foreach($carouselSlides as $idx => $slide)
+                    <div class="w3-border w3-padding w3-margin-bottom">
+                        <input type="hidden" name="carousel_slides[{{ $idx }}][k]" value="{{ $slide['k'] }}">
+                        @if(!empty($slide['id']))
+                            <input type="hidden" name="carousel_slides[{{ $idx }}][id]" value="{{ $slide['id'] }}">
+                        @endif
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <strong>{{ $slide['label'] }}</strong>
+                            <div>
+                                <label class="mb-0 me-2">Sort Order</label>
+                                <input type="number" class="form-control d-inline-block" style="width:100px;" name="carousel_slides[{{ $idx }}][sort_order]" value="{{ $slide['sort_order'] ?? ($idx + 1) }}">
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
         @endif
@@ -155,7 +250,7 @@
                     </div>
                 @endforeach
                 <input type="file" class="form-control" name="videos[]" id="videos" multiple accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi">
-                <p class="w3-small">Upload progress appears at the bottom of the screen. Uploading new files replaces existing section videos.</p>
+                <p class="w3-small">Upload progress appears at the bottom of the screen. New uploads are added — use Remove to delete old videos. For hero banner, videos appear in the home carousel with photos.</p>
                 <label class="w3-margin-top" for="youtube_links_text">YouTube URL (optional)</label>
                 <textarea name="youtube_links_text" id="youtube_links_text" class="form-control" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;One link per line"></textarea>
                 <p class="w3-small">Paste one YouTube link per line. Existing links stay unless you click Remove.</p>
@@ -246,6 +341,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var highlightsWrapper = document.getElementById('highlight_items_wrapper');
     var addHighlightBtn = document.getElementById('add_highlight_item');
     var colors = document.getElementById('section_form_marquee_colors');
+    var marqueeLinks = document.getElementById('section_form_marquee_links');
+    var marqueeLinksWrapper = document.getElementById('marquee_links_wrapper');
+    var addMarqueeLinkBtn = document.getElementById('add_marquee_link');
     var isHome = @json($page->slug === 'home');
     var isFactsheet = @json($page->slug === 'factsheet');
     var maxVideoMb = @json($maxVideoMb);
@@ -253,6 +351,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var highlightIndex = (function() {
         if (!highlightsWrapper) return 0;
         return highlightsWrapper.querySelectorAll('.highlight-item').length;
+    })();
+    var marqueeLinkIndex = (function() {
+        if (!marqueeLinksWrapper) return 0;
+        return marqueeLinksWrapper.querySelectorAll('.marquee-link-item').length;
     })();
 
     function toggleMarqueeFields() {
@@ -262,6 +364,29 @@ document.addEventListener('DOMContentLoaded', function () {
         if (media) media.style.display = (isMarquee || isFactsheetHighlights) ? 'none' : '';
         if (highlights) highlights.style.display = isFactsheetHighlights ? '' : 'none';
         if (colors) colors.style.display = (isHome && isMarquee) ? '' : 'none';
+        if (marqueeLinks) marqueeLinks.style.display = (isHome && isMarquee) ? '' : 'none';
+        setBlockInputsEnabled(colors, isHome && isMarquee);
+        setBlockInputsEnabled(marqueeLinks, isHome && isMarquee);
+        setBlockInputsEnabled(highlights, isFactsheetHighlights);
+    }
+
+    function setBlockInputsEnabled(block, enabled) {
+        if (!block) return;
+        block.querySelectorAll('input, select, textarea').forEach(function (el) {
+            el.disabled = !enabled;
+        });
+    }
+
+    function marqueeLinkTemplate(index) {
+        return '' +
+            '<div class="w3-border w3-padding w3-margin-bottom marquee-link-item" data-index="' + index + '">' +
+                '<input type="hidden" name="marquee_links[' + index + '][id]" value="">' +
+                '<div class="w3-margin-bottom"><label>Link Label</label><input type="text" class="w3-input" name="marquee_links[' + index + '][title]"></div>' +
+                '<div class="w3-margin-bottom"><label>Website URL (optional if PDF uploaded)</label><input type="url" class="w3-input" name="marquee_links[' + index + '][url]" placeholder="https://..."></div>' +
+                '<div class="w3-margin-bottom"><label>Upload PDF (optional)</label><input type="file" class="w3-input" name="marquee_links[' + index + '][file]" accept="application/pdf,.pdf"></div>' +
+                '<div class="w3-margin-bottom"><label>Sort Order</label><input type="number" class="w3-input" name="marquee_links[' + index + '][sort_order]" value="0"></div>' +
+                '<button type="button" class="w3-button w3-red remove-marquee-link">Remove</button>' +
+            '</div>';
     }
 
     function highlightTemplate(index) {
@@ -292,6 +417,20 @@ document.addEventListener('DOMContentLoaded', function () {
         highlightsWrapper.addEventListener('click', function (event) {
             if (event.target.classList.contains('remove-highlight-item')) {
                 var block = event.target.closest('.highlight-item');
+                if (block) block.remove();
+            }
+        });
+    }
+
+    if (addMarqueeLinkBtn && marqueeLinksWrapper) {
+        addMarqueeLinkBtn.addEventListener('click', function () {
+            marqueeLinksWrapper.insertAdjacentHTML('beforeend', marqueeLinkTemplate(marqueeLinkIndex));
+            marqueeLinkIndex += 1;
+        });
+
+        marqueeLinksWrapper.addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-marquee-link')) {
+                var block = event.target.closest('.marquee-link-item');
                 if (block) block.remove();
             }
         });

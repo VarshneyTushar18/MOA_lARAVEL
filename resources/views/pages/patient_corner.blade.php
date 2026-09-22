@@ -277,6 +277,16 @@
 
                 @endif
 
+                @if($errors->has('ltbi_no') || $errors->has('type') || $errors->has('cc_no') || $errors->has('tr_no') || $errors->has('file'))
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            var triggerEl = document.querySelector('[data-bs-target="#cured"]');
+                            var tab = new bootstrap.Tab(triggerEl);
+                            tab.show();
+                        });
+                    </script>
+                @endif
+
                 <div class="card p-4 mb-4" style="background:#f8f9fa;">
                     <h4>Cure Patient Document Upload</h4>
 
@@ -295,6 +305,9 @@
                                     pattern="\d{1,12}"
                                     title="Numeric only, up to 12 digits"
                                     required>
+                                @error('ltbi_no')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
 
                             {{-- Type Selection --}}
@@ -403,6 +416,16 @@
 
                 @endif
 
+                @if($errors->has('ltbirs_no') || $errors->has('file'))
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            var triggerEl = document.querySelector('[data-bs-target="#file"]');
+                            var tab = new bootstrap.Tab(triggerEl);
+                            tab.show();
+                        });
+                    </script>
+                @endif
+
                 {{-- Upload Section --}}
                 <div class="card p-4 mb-4" style="background:#f8f9fa;">
                     <h4>Research Patient File Upload</h4>
@@ -421,6 +444,9 @@
                                     pattern="[Ll][Tt][Bb][Ii][Rr][Ss]\d{4}"
                                     title="LTBIRS + 4 digits (e.g. LTBIRS0001)"
                                     required>
+                                @error('ltbirs_no')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -494,6 +520,16 @@
 
                 @endif
 
+                @if($errors->has('id_number') || ($errors->has('file') && old('id_number') !== null))
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            var triggerEl = document.querySelector('[data-bs-target="#idCard"]');
+                            var tab = new bootstrap.Tab(triggerEl);
+                            tab.show();
+                        });
+                    </script>
+                @endif
+
                 {{-- Upload Section --}}
                 <div class="card p-4 mb-4" style="background:#f8f9fa;">
                     <h4>ID Card Upload</h4>
@@ -513,6 +549,9 @@
                                     pattern="[Ii][Dd]\d{4}"
                                     title="ID + 4 digits (e.g. ID0001)"
                                     required>
+                                @error('id_number')
+                                    <small class="text-danger">{{ $message }}</small>
+                                @enderror
                             </div>
 
                             <div class="col-md-6 mb-3">

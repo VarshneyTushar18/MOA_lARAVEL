@@ -4,7 +4,10 @@
 
 <section class="w3-padding">
 
-    <h2>Add Project</h2>
+    <div class="console-page-header">
+        <h2 class="mb-0">Add Project</h2>
+        <a href="/console/projects/list" class="btn btn-outline-secondary btn-sm">Back to Project List</a>
+    </div>
 
     <form method="post" action="/console/projects/add" novalidate class="w3-margin-bottom">
 
@@ -70,8 +73,6 @@
         <button type="submit" class="w3-button w3-green">Add Project</button>
 
     </form>
-
-    <a href="/console/projects/list">Back to Project List</a>
 
 </section>
 

@@ -10,7 +10,7 @@ class ServeWithUploadLimits extends ServeCommand
 {
     protected $name = 'serve:large';
 
-    protected $description = 'Serve the application (same as serve) with 210M upload limits for large videos';
+    protected $description = 'Serve the application (same as serve) with 3 GB upload limits for large videos';
 
     /**
      * @return array<int, string>
@@ -20,9 +20,9 @@ class ServeWithUploadLimits extends ServeCommand
         $command = parent::serverCommand();
 
         array_splice($command, 1, 0, [
-            '-d', 'post_max_size=210M',
-            '-d', 'upload_max_filesize=210M',
-            '-d', 'max_execution_time=600',
+            '-d', 'post_max_size=3072M',
+            '-d', 'upload_max_filesize=3072M',
+            '-d', 'max_execution_time=3600',
         ]);
 
         return $command;

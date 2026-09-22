@@ -49,9 +49,8 @@ class Handler extends ExceptionHandler
     public function render($request, Throwable $e)
     {
         if ($e instanceof PostTooLargeException) {
-            $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
-            $message = "Upload too large for the server (PHP post/upload limit). "
-                ."Videos are limited to {$maxVideoMb} MB in the app; raise post_max_size and upload_max_filesize in php.ini, "
+            $message = 'Upload too large for the server (PHP post/upload limit). '
+                .'Raise post_max_size and upload_max_filesize in php.ini, '
                 .'or run: php artisan serve:large';
 
             if ($request->expectsJson()) {

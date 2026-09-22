@@ -25,21 +25,29 @@
                 <table id="contactsTable" class="table table-striped table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
+                            <th>ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Message</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @foreach($contacts as $contact)
                             <tr>
+                                <td>{{ $contact->id }}</td>
                                 <td class="fw-semibold">{{ $contact->full_name }}</td>
                                 <td>{{ $contact->email }}</td>
                                 <td>
                                     <span class="text-muted">
                                         {{ Str::limit($contact->message, 80) }}
                                     </span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('console.contacts.show', $contact->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach
@@ -60,7 +68,7 @@ $(document).ready(function() {
         "paging": true,
         "searching": true,
         "ordering": true,
-        "order": [[0, "asc"]], // default sort by first column (S.No)
+        "order": [[0, "desc"]],
         "columnDefs": [
             { "orderable": false, "targets": -1 } // disable sorting on last column (Actions)
             ]

@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+APP="/home/sites/41b/b/ba690bc503/MOA_lARAVEL"
+UP="/home/sites/41b/b/ba690bc503/moa_deploy_upload"
+mkdir -p "$APP/$(dirname "resources/views/layout/console.blade.php")"
+cp "$UP/console.blade.php" "$APP/resources/views/layout/console.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/pages_console/sections/list.blade.php")"
+cp "$UP/sections_list.blade.php" "$APP/resources/views/pages_console/sections/list.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/projects/edit.blade.php")"
+cp "$UP/projects_edit.blade.php" "$APP/resources/views/projects/edit.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/projects/add.blade.php")"
+cp "$UP/projects_add.blade.php" "$APP/resources/views/projects/add.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/projects/image.blade.php")"
+cp "$UP/projects_image.blade.php" "$APP/resources/views/projects/image.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/users/edit.blade.php")"
+cp "$UP/users_edit.blade.php" "$APP/resources/views/users/edit.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/users/add.blade.php")"
+cp "$UP/users_add.blade.php" "$APP/resources/views/users/add.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/types/edit.blade.php")"
+cp "$UP/types_edit.blade.php" "$APP/resources/views/types/edit.blade.php"
+mkdir -p "$APP/$(dirname "resources/views/types/add.blade.php")"
+cp "$UP/types_add.blade.php" "$APP/resources/views/types/add.blade.php"
+cd "$APP"
+php82 artisan view:clear
+php82 -r "if (function_exists('opcache_reset')) opcache_reset();"
+echo DONE

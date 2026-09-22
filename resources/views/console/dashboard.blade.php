@@ -49,6 +49,18 @@
             </a>
         </div>
 
+        <!-- Manage Footer -->
+        <div class="col-md-4 col-lg-4">
+            <a href="/console/footer" class="text-decoration-none">
+                <div class="card shadow-sm h-100 text-center p-4 hover-shadow">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-rectangle-list fa-2x text-info"></i>
+                    </div>
+                    <h5 class="mb-0">Manage Footer</h5>
+                </div>
+            </a>
+        </div>
+
         <!-- Contacts -->
         <div class="col-md-4 col-lg-4">
             <a href="/console/contacts/list" class="text-decoration-none">
@@ -84,6 +96,39 @@
         </div>
     </a>
 </div>
+
+        <div class="col-md-4 mb-4">
+            <a href="{{ route('console.cure.list') }}" class="text-decoration-none">
+                <div class="card shadow-sm border-0 h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-notes-medical fa-2x text-danger"></i>
+                    </div>
+                    <h5 class="mb-0">Cure Uploads</h5>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <a href="{{ route('console.research.list') }}" class="text-decoration-none">
+                <div class="card shadow-sm border-0 h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-flask fa-2x text-info"></i>
+                    </div>
+                    <h5 class="mb-0">Research Uploads</h5>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <a href="{{ route('console.idcard.list') }}" class="text-decoration-none">
+                <div class="card shadow-sm border-0 h-100 text-center p-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-id-card fa-2x text-secondary"></i>
+                    </div>
+                    <h5 class="mb-0">ID Card Uploads</h5>
+                </div>
+            </a>
+        </div>
 
     </div>
 

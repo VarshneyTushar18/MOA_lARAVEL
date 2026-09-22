@@ -14,8 +14,10 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\CureController;
 use App\Http\Controllers\ResearchPatientController;
 use App\Http\Controllers\IdCardController;
+use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\SurveyResponseController;
 use App\Http\Controllers\Console\SurveyResponseController as ConsoleSurveyResponseController;
+use App\Http\Controllers\Console\FooterController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes    
@@ -38,6 +40,8 @@ Route::get('/favicon.ico', function () {
 Route::get('/', [HomeController::class, 'index']);
 Route::get('/about', [HomeController::class, 'aboutUs']);
 Route::get('/contact', [HomeController::class, 'contactUs']);
+Route::get('/pm-tb-mukt-bharat-abhiyan', [HomeController::class, 'pmTbMuktBharat'])->name('pm-tb-mukt-bharat');
+Route::get('/about-rntcp', [HomeController::class, 'aboutRntcp'])->name('about-rntcp');
 Route::get('/factsheet', function() {
     $page = \App\Models\Page::where('slug', 'factsheet')
         ->with([
@@ -85,6 +89,10 @@ Route::get('/performance_report', function () {
 Route::get('/patient-search', [PatientController::class, 'search'])->name('patient.search');
 
 Route::get('/console/contacts/list', [ContactController::class, 'index'])->middleware('auth');
+Route::get('/console/contacts/{id}', [ContactController::class, 'show'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.contacts.show');
 Route::post('/contact-submit', [ContactController::class, 'store'])
      ->name('contact.store');
 
@@ -94,6 +102,9 @@ Route::redirect('/console.login', '/console/login');
 Route::get('/console/login', [ConsoleController::class, 'loginForm'])->middleware('guest')->name('console.login');
 Route::post('/console/login', [ConsoleController::class, 'login'])->middleware('guest')->name('console.login.submit');
 Route::get('/console/dashboard', [ConsoleController::class, 'dashboard'])->middleware('auth')->name('console.dashboard');
+
+Route::get('/console/footer', [FooterController::class, 'edit'])->middleware('auth')->name('console.footer.edit');
+Route::post('/console/footer', [FooterController::class, 'update'])->middleware('auth')->name('console.footer.update');
 
 // Console: pages and page sections
 Route::get('/console/pages/list', [App\Http\Controllers\PagesController::class, 'list'])->middleware('auth');
@@ -121,6 +132,11 @@ Route::post('/patients/store', [PatientController::class, 'store'])->name('patie
 // Admin console list
 Route::get('/console/patients/list', [PatientController::class, 'index'])->middleware('auth');
 
+Route::get('/console/patients/{id}', [PatientController::class, 'show'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.patients.show');
+
 // Download single patient by ID
 Route::get('/console/patients/{id}/download', [PatientController::class, 'download'])
     ->middleware('auth')
@@ -141,6 +157,22 @@ Route::post('/cure/store', [CureController::class, 'store'])
 Route::get('/cure/download', [CureController::class, 'download'])
     ->name('cure.download');
 
+Route::get('/console/cure-patients/list', [CureController::class, 'index'])
+    ->middleware('auth')
+    ->name('console.cure.list');
+Route::get('/console/cure-patients/{id}', [CureController::class, 'show'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.cure.show');
+Route::get('/console/cure-patients/{id}/file', [CureController::class, 'consoleFile'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.cure.file');
+Route::get('/console/cure-patients/{id}/download', [CureController::class, 'consoleDownload'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.cure.download');
+
 
 Route::post('/research/store', [ResearchPatientController::class, 'store'])
     ->name('research.store');
@@ -148,16 +180,53 @@ Route::post('/research/store', [ResearchPatientController::class, 'store'])
 Route::get('/research/download', [ResearchPatientController::class, 'download'])
     ->name('research.download');
 
+Route::get('/console/research-patients/list', [ResearchPatientController::class, 'index'])
+    ->middleware('auth')
+    ->name('console.research.list');
+Route::get('/console/research-patients/{id}', [ResearchPatientController::class, 'show'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.research.show');
+Route::get('/console/research-patients/{id}/file', [ResearchPatientController::class, 'consoleFile'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.research.file');
+Route::get('/console/research-patients/{id}/download', [ResearchPatientController::class, 'consoleDownload'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.research.download');
+
 Route::post('/idcard/store', [IdCardController::class, 'store'])
     ->name('idcard.store');
 
 Route::get('/idcard/download', [IdCardController::class, 'download'])
     ->name('idcard.download');
 
+Route::get('/console/id-cards/list', [IdCardController::class, 'index'])
+    ->middleware('auth')
+    ->name('console.idcard.list');
+Route::get('/console/id-cards/{id}', [IdCardController::class, 'show'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.idcard.show');
+Route::get('/console/id-cards/{id}/file', [IdCardController::class, 'consoleFile'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.idcard.file');
+Route::get('/console/id-cards/{id}/download', [IdCardController::class, 'consoleDownload'])
+    ->middleware('auth')
+    ->where('id', '[0-9]+')
+    ->name('console.idcard.download');
+
 
 //
 Route::post('/survey-submit', [SurveyResponseController::class, 'store'])->name('survey.submit');
 Route::get('/screening-performa', [SurveyResponseController::class, 'create'])->name('survey.form');
+
+Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
+Route::get('/gallery/album/{section}', [GalleryController::class, 'show'])
+    ->where('section', '[0-9]+')
+    ->name('gallery.show');
 
 Route::get('/console/survey-responses', [ConsoleSurveyResponseController::class, 'index'])->middleware('auth')->name('console.survey_responses.index');
 Route::get('/console/survey-responses/export', [ConsoleSurveyResponseController::class, 'export'])->middleware('auth')->name('console.survey_responses.export');

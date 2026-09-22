@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\FooterContentService;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        View::composer('layout.frontend', function ($view) {
+            $view->with('siteFooter', app(FooterContentService::class)->forFrontend());
+        });
     }
 }

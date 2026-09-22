@@ -109,7 +109,7 @@ class ProjectsController extends Controller
     {
 
         $attributes = request()->validate([
-            'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'image' => 'required|image|mimes:jpeg,jpg,png,gif,webp',
         ]);
 
         if ($project->image) {

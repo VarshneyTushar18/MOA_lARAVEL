@@ -57,11 +57,16 @@
                             <td>{{ $patient->refer }}</td>
 
                             <td>
-                                <form action="{{ route('patients.download', $patient->id) }}" method="GET">
-                                    <button type="submit" class="btn btn-sm btn-primary">
-                                        <i class="fa-solid fa-download"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ route('console.patients.show', $patient->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <form action="{{ route('patients.download', $patient->id) }}" method="GET" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary" title="Download">
+                                            <i class="fa-solid fa-download"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -81,7 +86,7 @@ $(document).ready(function() {
         "paging": true,
         "searching": true,
         "ordering": true,
-        "order": [[0, "asc"]], // default sort by first column (S.No)
+        "order": [[0, "desc"]], // newest first
         "columnDefs": [
             { "orderable": false, "targets": -1 } // disable sorting on last column (Actions)
         ]

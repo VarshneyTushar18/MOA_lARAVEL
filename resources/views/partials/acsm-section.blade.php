@@ -87,7 +87,7 @@
                             <a href="{{ asset('storage/'.$img->image) }}"
                                class="glightbox acsm-gallery-card"
                                data-gallery="acsm-{{ $section->id }}">
-                                <img src="{{ asset('storage/'.$img->image) }}" alt="{{ $section->title }}">
+                                <img src="{{ asset('storage/'.$img->image) }}" alt="{{ $section->title }}" loading="lazy" decoding="async">
                             </a>
                         </div>
                     @endforeach

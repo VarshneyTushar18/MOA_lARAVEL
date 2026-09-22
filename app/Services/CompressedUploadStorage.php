@@ -7,7 +7,6 @@ use GdImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class CompressedUploadStorage
 {
@@ -18,31 +17,88 @@ class CompressedUploadStorage
     ];
     public static function storeImage(UploadedFile $file, string $directory, string $disk = 'public'): string
     {
-        if (! self::shouldProcess($file)) {
-            return $file->store($directory, $disk);
+        // Always store first so upload response stays fast; optimize in the queue when enabled.
+        $path = $file->store($directory, $disk);
+
+        if (self::shouldProcess($file)) {
+            \App\Jobs\CompressStoredImageJob::dispatch($disk, $path);
         }
 
-        $dir = trim($directory, '/');
-        $path = $dir.'/'.Str::random(40).'.'.self::targetExtension($file);
-
-        return self::tryWriteCompressed($file, $path, $disk)
-            ? $path
-            : $file->store($directory, $disk);
+        return $path;
     }
 
     public static function storeImageAs(UploadedFile $file, string $directory, string $filename, string $disk = 'local'): string
     {
-        if (! self::shouldProcess($file)) {
-            return $file->storeAs($directory, $filename, $disk);
+        $path = $file->storeAs($directory, $filename, $disk);
+
+        if (self::shouldProcess($file)) {
+            \App\Jobs\CompressStoredImageJob::dispatch($disk, $path);
         }
 
-        $dir = trim($directory, '/');
-        $base = pathinfo($filename, PATHINFO_FILENAME);
-        $path = $dir.'/'.$base.'.'.self::targetExtension($file);
+        return $path;
+    }
 
-        return self::tryWriteCompressed($file, $path, $disk)
-            ? $path
-            : $file->storeAs($directory, $filename, $disk);
+    /**
+     * Re-encode an already-stored raster image in place (silent; used by queue/batch).
+     *
+     * @return array{success: bool, optimized: bool, message: string}
+     */
+    public static function compressStoredImage(string $disk, string $relativePath): array
+    {
+        if (! extension_loaded('gd')) {
+            return ['success' => false, 'optimized' => false, 'message' => 'gd missing'];
+        }
+
+        if (! Storage::disk($disk)->exists($relativePath)) {
+            return ['success' => false, 'optimized' => false, 'message' => 'missing'];
+        }
+
+        $ext = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => null,
+        };
+        if ($mime === null) {
+            return ['success' => true, 'optimized' => false, 'message' => 'skipped'];
+        }
+
+        $absolute = Storage::disk($disk)->path($relativePath);
+        if (! is_readable($absolute)) {
+            return ['success' => false, 'optimized' => false, 'message' => 'unreadable'];
+        }
+
+        $originalSize = filesize($absolute) ?: 0;
+        $img = self::createFromFile($absolute, $mime);
+        if (! $img instanceof GdImage) {
+            return ['success' => false, 'optimized' => false, 'message' => 'decode failed'];
+        }
+
+        try {
+            $maxDim = (int) config('upload_compression.max_dimension', 2560);
+            $img = self::maybeDownscale($img, $maxDim);
+            if (! $img instanceof GdImage) {
+                return ['success' => false, 'optimized' => false, 'message' => 'scale failed'];
+            }
+
+            $binary = self::encode($img, $mime);
+            if ($binary === null) {
+                return ['success' => false, 'optimized' => false, 'message' => 'encode failed'];
+            }
+
+            if ($originalSize > 0 && strlen($binary) >= $originalSize) {
+                return ['success' => true, 'optimized' => false, 'message' => 'already small'];
+            }
+
+            Storage::disk($disk)->put($relativePath, $binary);
+
+            return ['success' => true, 'optimized' => true, 'message' => 'optimized'];
+        } finally {
+            if (isset($img) && $img instanceof GdImage) {
+                imagedestroy($img);
+            }
+        }
     }
 
     /**

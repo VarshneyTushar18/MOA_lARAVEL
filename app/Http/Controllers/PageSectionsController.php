@@ -8,6 +8,7 @@ use App\Models\PageSectionHighlightItem;
 use App\Models\PageSectionImage;
 use App\Models\PageSectionMedia;
 use App\Services\CompressedUploadStorage;
+use App\Services\HeroCarouselService;
 use App\Support\UploadLimits;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -19,9 +20,15 @@ class PageSectionsController extends Controller
     // List sections
     public function list(Page $page)
     {
+        $sections = $this->sectionsInDisplayOrder($page)
+            ->load(['images', 'media', 'parent', 'subsections'])
+            ->filter(fn (PageSection $section) => ! $this->isHiddenAdminSection($page, $section))
+            ->values();
+
         return view('pages_console.sections.list', [
             'page' => $page,
-            'sections' => $this->sectionsInDisplayOrder($page)->load(['images', 'media', 'parent']),
+            'sections' => $sections,
+            'galleryAdminUrl' => $page->slug === 'home' ? $this->galleryAdminUrl() : null,
         ]);
     }
 
@@ -36,33 +43,22 @@ class PageSectionsController extends Controller
     // Add section
     public function add(Page $page)
     {
+        $this->stripIrrelevantSectionInput();
+
         $attributes = request()->validate(
-            array_merge([
-                'section_key' => 'required',
-                'title' => 'nullable',
-                'description' => 'nullable',
-                'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-                'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-                'image' => 'nullable|image',
-                'images.*' => 'nullable|image',
-                'pdfs.*' => 'nullable|file|mimes:pdf',
-                'new_pdf_title' => 'nullable|string|max:255',
-                'new_pdf_description' => 'nullable|string|max:2000',
-                'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
-                'youtube_links.*' => 'nullable|url',
-                'highlight_items' => 'nullable|array',
-                'highlight_items.*.title' => 'nullable|string|max:255',
-                'highlight_items.*.description' => 'nullable|string',
-                'highlight_items.*.sort_order' => 'nullable|integer',
-                'highlight_items.*.youtube_url' => 'nullable|url',
-                'highlight_items.*.image' => 'nullable|image',
-                'sort_order' => 'nullable|integer',
-                'parent_id' => 'nullable|exists:page_sections,id',
-            ], $this->videoUploadValidationRules()),
+            array_merge($this->sectionBaseValidationRules(), $this->marqueeValidationRules(), $this->videoUploadValidationRules()),
             $this->videoUploadValidationMessages()
         );
 
         $this->assertUploadsNotBlockedByPhp(request());
+
+        if ($page->slug === 'home' && ($attributes['section_key'] ?? '') === 'marquee_link') {
+            throw ValidationException::withMessages([
+                'section_key' => 'Do not add marquee_link here. Edit the home_marquee section and use Add Link.',
+            ]);
+        }
+
+        $this->assertNotDuplicateHomeGallery($page, $attributes['section_key'] ?? '');
 
         $section = new PageSection;
         $section->page_id = $page->id;
@@ -90,11 +86,18 @@ class PageSectionsController extends Controller
             $this->syncHighlightItems(request(), $section);
         }
 
+        if ($this->isHomeMarqueeSection($page, $attributes['section_key'] ?? null, $section)) {
+            $this->syncMarqueeLinks(request(), $page, $section);
+        }
+
         // Multiple images
         if (request()->hasFile('images')) {
             foreach (request()->file('images') as $file) {
                 $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
-                $section->images()->create(['image' => $path]);
+                $image = $section->images()->create(['image' => $path]);
+                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                    $this->heroCarousel()->appendToOrder($section, ['k' => 'image', 'id' => $image->id]);
+                }
             }
         }
 
@@ -115,10 +118,13 @@ class PageSectionsController extends Controller
         if (request()->hasFile('videos')) {
             foreach (request()->file('videos') as $video) {
                 $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
-                $section->media()->create([
+                $media = $section->media()->create([
                     'type' => 'video',
                     'file_path' => $path,
                 ]);
+                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                    $this->heroCarousel()->appendToOrder($section, ['k' => 'video', 'id' => $media->id]);
+                }
             }
         }
 
@@ -133,7 +139,11 @@ class PageSectionsController extends Controller
             }
         }
 
-        $this->addYoutubeLinksFromRequest($section);
+        $this->addYoutubeLinksFromRequest($section, $page);
+
+        if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+            $this->heroCarousel()->syncOrderFromRequest(request(), $section);
+        }
 
         if ($requestedOrder > 0) {
             $this->insertSectionAtPosition($page, $section, $requestedOrder);
@@ -145,7 +155,12 @@ class PageSectionsController extends Controller
     // Show edit form
     public function editForm(Page $page, PageSection $section)
     {
-        $section->load(['highlightItems', 'media', 'images']);
+        if ($this->isHiddenAdminSection($page, $section) && $section->parent_id) {
+            return redirect("/console/pages/sections/{$page->id}/edit/{$section->parent_id}")
+                ->with('message', 'Manage these links inside the home_marquee section.');
+        }
+
+        $section->load(['highlightItems', 'media', 'images', 'subsections.media']);
         $this->syncLegacyYoutubeVideosToMedia($section);
         $section->load('media');
         $page->load('sections');
@@ -154,43 +169,30 @@ class PageSectionsController extends Controller
             'page' => $page,
             'section' => $section,
             'highlightItems' => $this->highlightItemsForEditForm($section),
+            'marqueeLinks' => $this->marqueeLinksForEditForm($section),
+            'carouselSlides' => old('carousel_slides', $this->heroCarousel()->slidesForAdminForm($section)),
         ]);
     }
 
     // Edit section
     public function edit(Page $page, PageSection $section)
     {
+        $this->stripIrrelevantSectionInput($section);
+
         $attributes = request()->validate(
-            array_merge([
-                'section_key' => 'required',
-                'title' => 'nullable',
-                'description' => 'nullable',
-                'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-                'bg_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
-                'image' => 'nullable|image',
-                'images.*' => 'nullable|image',
-                'pdfs.*' => 'nullable|file|mimes:pdf',
-                'pdf_meta' => 'nullable|array',
-                'pdf_meta.*.title' => 'nullable|string|max:255',
-                'pdf_meta.*.description' => 'nullable|string|max:2000',
-                'new_pdf_title' => 'nullable|string|max:255',
-                'new_pdf_description' => 'nullable|string|max:2000',
-                'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
-                'youtube_links.*' => 'nullable|url',
-                'highlight_items' => 'nullable|array',
-                'highlight_items.*.id' => 'nullable|integer',
-                'highlight_items.*.title' => 'nullable|string|max:255',
-                'highlight_items.*.description' => 'nullable|string',
-                'highlight_items.*.sort_order' => 'nullable|integer',
-                'highlight_items.*.youtube_url' => 'nullable|url',
-                'highlight_items.*.image' => 'nullable|image',
-                'sort_order' => 'nullable|integer',
-                'parent_id' => 'nullable|exists:page_sections,id',
-            ], $this->videoUploadValidationRules()),
+            array_merge($this->sectionBaseValidationRules(), $this->marqueeValidationRules(), $this->videoUploadValidationRules()),
             $this->videoUploadValidationMessages()
         );
 
         $this->assertUploadsNotBlockedByPhp(request());
+
+        if ($page->slug === 'home' && ($attributes['section_key'] ?? '') === 'marquee_link') {
+            throw ValidationException::withMessages([
+                'section_key' => 'Do not use marquee_link here. Edit the home_marquee section and use Add Link.',
+            ]);
+        }
+
+        $this->assertNotDuplicateHomeGallery($page, $attributes['section_key'] ?? '', $section);
 
         // Basic fields update
         $section->section_key = $attributes['section_key'];
@@ -214,6 +216,9 @@ class PageSectionsController extends Controller
                 Storage::disk('public')->delete($section->image);
             }
             $section->image = CompressedUploadStorage::storeImage(request()->file('image'), 'page_sections', 'public');
+            if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                $this->heroCarousel()->appendToOrder($section, ['k' => 'main_image']);
+            }
         }
 
         $section->save();
@@ -224,6 +229,10 @@ class PageSectionsController extends Controller
 
         if ($this->isFactsheetHighlightsSection($page, $attributes['section_key'] ?? null)) {
             $this->syncHighlightItems(request(), $section);
+        }
+
+        if ($this->isHomeMarqueeSection($page, $attributes['section_key'] ?? null, $section)) {
+            $this->syncMarqueeLinks(request(), $page, $section);
         }
 
         /*
@@ -263,20 +272,15 @@ class PageSectionsController extends Controller
         */
 
         if (request()->hasFile('videos')) {
-
-            foreach ($section->media()->where('type', 'video')->get() as $media) {
-                if ($media->file_path) {
-                    Storage::disk('public')->delete($media->file_path);
-                }
-                $media->delete();
-            }
-
             foreach (request()->file('videos') as $video) {
                 $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
-                $section->media()->create([
+                $media = $section->media()->create([
                     'type' => 'video',
                     'file_path' => $path,
                 ]);
+                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                    $this->heroCarousel()->appendToOrder($section, ['k' => 'video', 'id' => $media->id]);
+                }
             }
         }
 
@@ -304,8 +308,6 @@ class PageSectionsController extends Controller
             }
         }
 
-        $this->addYoutubeLinksFromRequest($section);
-
         /*
         |--------------------------------------------------------------------------
         | Additional Images (does NOT delete old ones)
@@ -315,10 +317,19 @@ class PageSectionsController extends Controller
         if (request()->hasFile('images')) {
             foreach (request()->file('images') as $file) {
                 $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
-                $section->images()->create([
+                $image = $section->images()->create([
                     'image' => $path,
                 ]);
+                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                    $this->heroCarousel()->appendToOrder($section, ['k' => 'image', 'id' => $image->id]);
+                }
             }
+        }
+
+        $this->addYoutubeLinksFromRequest($section, $page);
+
+        if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+            $this->heroCarousel()->syncOrderFromRequest(request(), $section);
         }
 
         if ($requestedOrder !== null && $requestedOrder > 0) {
@@ -355,6 +366,10 @@ class PageSectionsController extends Controller
                 Storage::disk('public')->delete($item->video_path);
             }
             $item->delete();
+        }
+
+        foreach ($section->subsections as $child) {
+            $child->delete();
         }
 
         $section->delete();
@@ -401,19 +416,33 @@ class PageSectionsController extends Controller
 
     public function deleteImage(PageSectionImage $image)
     {
+        $section = $image->section;
+        $imageId = $image->id;
         Storage::disk('public')->delete($image->image);
         $image->delete();
+
+        if ($section) {
+            $this->heroCarousel()->removeFromOrder($section, ['k' => 'image', 'id' => $imageId]);
+        }
 
         return back()->with('message', 'Image deleted');
     }
 
     public function deleteMedia(PageSectionMedia $media)
     {
+        $section = $media->section;
+        $mediaId = $media->id;
+        $type = $media->type;
+
         if ($media->file_path) {
             Storage::disk('public')->delete($media->file_path);
         }
 
         $media->delete();
+
+        if ($section && in_array($type, ['video', 'youtube'], true)) {
+            $this->heroCarousel()->removeFromOrder($section, ['k' => $type, 'id' => $mediaId]);
+        }
 
         return back()->with('message', 'File deleted');
     }
@@ -428,6 +457,7 @@ class PageSectionsController extends Controller
             Storage::disk('public')->delete($section->image);
             $section->image = null;
             $section->save();
+            $this->heroCarousel()->removeFromOrder($section, ['k' => 'main_image']);
         }
 
         return back()->with('message', 'Main image deleted');
@@ -548,6 +578,175 @@ class PageSectionsController extends Controller
         return $page->slug === 'factsheet' && $sectionKey === 'factsheet_highlights';
     }
 
+    private function isHomeMarqueeSection(Page $page, ?string $sectionKey, ?PageSection $section = null): bool
+    {
+        if ($page->slug !== 'home' || $sectionKey !== 'home_marquee') {
+            return false;
+        }
+
+        if ($section && $section->parent_id) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isHiddenAdminSection(Page $page, PageSection $section): bool
+    {
+        if ($page->slug === 'home' && $section->section_key === 'marquee_link' && $section->parent_id) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function galleryAdminUrl(): string
+    {
+        $galleryPage = Page::where('slug', 'gallery')->first();
+
+        return $galleryPage
+            ? "/console/pages/sections/{$galleryPage->id}"
+            : '/console/pages/list';
+    }
+
+    private function assertNotDuplicateHomeGallery(Page $page, string $sectionKey, ?PageSection $ignoreSection = null): void
+    {
+        if ($page->slug !== 'home' || $sectionKey !== 'gallery') {
+            return;
+        }
+
+        $query = PageSection::where('page_id', $page->id)
+            ->where('section_key', 'gallery')
+            ->whereNull('parent_id');
+
+        if ($ignoreSection) {
+            $query->where('id', '!=', $ignoreSection->id);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'section_key' => 'Only one gallery section is allowed on the Home page.',
+            ]);
+        }
+    }
+
+    public static function resolveMarqueeLinkHref(PageSection $link): ?string
+    {
+        $pdf = $link->relationLoaded('media')
+            ? $link->media->where('type', 'pdf')->first()
+            : $link->media()->where('type', 'pdf')->first();
+
+        if ($pdf?->file_path) {
+            return asset('storage/'.$pdf->file_path);
+        }
+
+        $url = trim((string) ($link->description ?? ''));
+
+        return $url !== '' ? $url : null;
+    }
+
+    private function clearMarqueeLinkFile(PageSection $linkSection): void
+    {
+        foreach ($linkSection->media()->where('type', 'pdf')->get() as $media) {
+            if ($media->file_path) {
+                Storage::disk('public')->delete($media->file_path);
+            }
+            $media->delete();
+        }
+    }
+
+    private function syncMarqueeLinks(Request $request, Page $page, PageSection $section): void
+    {
+        $items = $request->input('marquee_links', []);
+        if (! is_array($items)) {
+            $items = [];
+        }
+
+        $existingItems = $section->subsections()->with('media')->get()->keyBy('id');
+        $retainIds = [];
+
+        foreach ($items as $index => $itemData) {
+            if (! is_array($itemData)) {
+                continue;
+            }
+
+            $title = isset($itemData['title']) ? trim((string) $itemData['title']) : '';
+            $url = isset($itemData['url']) ? trim((string) $itemData['url']) : '';
+            $sortOrder = isset($itemData['sort_order']) && $itemData['sort_order'] !== ''
+                ? (int) $itemData['sort_order']
+                : ($index + 1);
+            $itemId = isset($itemData['id']) ? (int) $itemData['id'] : null;
+            $file = $request->file("marquee_links.$index.file");
+
+            /** @var PageSection|null $linkSection */
+            $linkSection = $itemId ? $existingItems->get($itemId) : null;
+            $existingPdf = $linkSection?->media->where('type', 'pdf')->first();
+
+            if ($title === '' && $url === '' && ! $file && ! $existingPdf) {
+                continue;
+            }
+
+            if ($url !== '' && ! filter_var($url, FILTER_VALIDATE_URL)) {
+                throw ValidationException::withMessages([
+                    "marquee_links.$index.url" => 'Enter a valid website URL (starting with http:// or https://) or upload a PDF.',
+                ]);
+            }
+
+            if ($title === '') {
+                throw ValidationException::withMessages([
+                    "marquee_links.$index.title" => 'Each marquee link needs a label.',
+                ]);
+            }
+
+            if (! $url && ! $file && ! $existingPdf) {
+                throw ValidationException::withMessages([
+                    "marquee_links.$index.url" => 'Add a website URL or upload a PDF for each marquee link.',
+                ]);
+            }
+
+            if (! $linkSection) {
+                $linkSection = new PageSection;
+                $linkSection->page_id = $page->id;
+                $linkSection->section_key = 'marquee_link';
+                $linkSection->parent_id = $section->id;
+                $linkSection->type = 'single';
+            }
+
+            $linkSection->title = $title;
+            $linkSection->sort_order = $sortOrder;
+
+            if ($file) {
+                if (! $linkSection->exists) {
+                    $linkSection->description = $url ?: null;
+                    $linkSection->save();
+                }
+
+                $this->clearMarqueeLinkFile($linkSection);
+                $path = $file->store('page_sections/pdfs', 'public');
+                $linkSection->media()->create([
+                    'type' => 'pdf',
+                    'file_path' => $path,
+                ]);
+                $linkSection->description = $url ?: null;
+            } elseif ($url) {
+                $this->clearMarqueeLinkFile($linkSection);
+                $linkSection->description = $url;
+            } elseif ($existingPdf) {
+                $linkSection->description = null;
+            }
+
+            $linkSection->save();
+            $retainIds[] = $linkSection->id;
+        }
+
+        foreach ($existingItems as $id => $linkSection) {
+            if (! in_array($id, $retainIds, true)) {
+                $this->clearMarqueeLinkFile($linkSection);
+                $linkSection->delete();
+            }
+        }
+    }
+
     private function syncHighlightItems(Request $request, PageSection $section): void
     {
         $items = $request->input('highlight_items', []);
@@ -646,13 +845,8 @@ class PageSectionsController extends Controller
 
     private function appendVideoCompressionNotice(string $message): string
     {
-        if (! config('upload_compression.video_enabled', false)) {
-            return $message;
-        }
-
-        $notice = CompressedUploadStorage::videoCompressionNotice();
-
-        return $notice ? $message.' '.$notice : $message;
+        // Keep admin messages silent about compression (runs in background only).
+        return $message;
     }
 
     private function syncPdfMeta(PageSection $section): void
@@ -700,7 +894,7 @@ class PageSectionsController extends Controller
         return array_values(array_unique($clean));
     }
 
-    private function addYoutubeLinksFromRequest(PageSection $section): void
+    private function addYoutubeLinksFromRequest(PageSection $section, ?Page $page = null): void
     {
         foreach ($this->youtubeLinksFromRequest() as $link) {
             $exists = $section->media()
@@ -710,10 +904,13 @@ class PageSectionsController extends Controller
             if ($exists) {
                 continue;
             }
-            $section->media()->create([
+            $media = $section->media()->create([
                 'type' => 'youtube',
                 'youtube_url' => $link,
             ]);
+            if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                $this->heroCarousel()->appendToOrder($section, ['k' => 'youtube', 'id' => $media->id]);
+            }
         }
     }
 
@@ -870,14 +1067,128 @@ class PageSectionsController extends Controller
         })->all();
     }
 
+    /** @return array<int, array<string, mixed>> */
+    private function marqueeLinksForEditForm(PageSection $section): array
+    {
+        if ($section->section_key !== 'home_marquee') {
+            return [];
+        }
+
+        $old = old('marquee_links');
+        if (is_array($old) && old('section_key', $section->section_key) === 'home_marquee') {
+            return $old;
+        }
+
+        return $section->subsections->load('media')->map(function (PageSection $item) {
+            $existingPdf = $item->media->where('type', 'pdf')->first();
+
+            return [
+                'id' => $item->id,
+                'title' => $item->title,
+                'url' => $item->description,
+                'sort_order' => $item->sort_order,
+                'existing_pdf' => $existingPdf?->file_path,
+            ];
+        })->all();
+    }
+
+    /** @return array<string, string|array<int, string>> */
+    private function sectionBaseValidationRules(): array
+    {
+        $sectionKey = trim((string) request()->input('section_key', ''));
+
+        $rules = [
+            'section_key' => 'required',
+            'title' => 'nullable',
+            'description' => 'nullable',
+            'image' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:51200',
+            'images.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:51200',
+            'pdfs.*' => 'nullable|file|mimes:pdf',
+            'pdf_meta' => 'nullable|array',
+            'pdf_meta.*.title' => 'nullable|string|max:255',
+            'pdf_meta.*.description' => 'nullable|string|max:2000',
+            'new_pdf_title' => 'nullable|string|max:255',
+            'new_pdf_description' => 'nullable|string|max:2000',
+            'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
+            'youtube_links_text' => 'nullable|string|max:8000',
+            'sort_order' => 'nullable|integer',
+            'parent_id' => 'nullable|exists:page_sections,id',
+        ];
+
+        if ($sectionKey === 'home_marquee') {
+            $rules['text_color'] = ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'];
+            $rules['bg_color'] = ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'];
+        }
+
+        if ($sectionKey === 'factsheet_highlights') {
+            $rules = array_merge($rules, [
+                'highlight_items' => 'nullable|array',
+                'highlight_items.*.id' => 'nullable|integer',
+                'highlight_items.*.title' => 'nullable|string|max:255',
+                'highlight_items.*.description' => 'nullable|string',
+                'highlight_items.*.sort_order' => 'nullable|integer',
+                'highlight_items.*.youtube_url' => 'nullable|url',
+                'highlight_items.*.image' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:51200',
+            ]);
+        }
+
+        return $rules;
+    }
+
+    /** @return array<string, string> */
+    private function marqueeValidationRules(): array
+    {
+        if (trim((string) request()->input('section_key')) !== 'home_marquee') {
+            return [];
+        }
+
+        return [
+            'marquee_links' => 'nullable|array',
+            'marquee_links.*.id' => 'nullable|integer',
+            'marquee_links.*.title' => 'nullable|string|max:255',
+            'marquee_links.*.url' => 'nullable|string|max:2048',
+            'marquee_links.*.file' => 'nullable|file|mimes:pdf|max:51200',
+            'marquee_links.*.sort_order' => 'nullable|integer',
+        ];
+    }
+
+    private function stripIrrelevantSectionInput(?PageSection $section = null): void
+    {
+        $requestedKey = trim((string) request()->input('section_key', $section?->section_key ?? ''));
+
+        if ($requestedKey !== '') {
+            request()->merge(['section_key' => $requestedKey]);
+        }
+
+        if ($requestedKey !== 'home_marquee') {
+            request()->merge([
+                'marquee_links' => [],
+                'text_color' => null,
+                'bg_color' => null,
+            ]);
+        }
+
+        if ($requestedKey !== 'factsheet_highlights') {
+            request()->merge(['highlight_items' => []]);
+        }
+    }
+
     private function maxVideoKilobytes(): int
     {
-        return (int) config('upload_compression.max_video_kilobytes', 204800);
+        $configuredMb = (int) config('upload_compression.max_video_mb', 0);
+        $phpKb = max(1, (int) floor(UploadLimits::effectiveMaxBytes() / 1024));
+
+        // 0 or negative = no app cap; use PHP/nginx ceiling only.
+        if ($configuredMb <= 0) {
+            return $phpKb;
+        }
+
+        return min($configuredMb * 1024, $phpKb);
     }
 
     private function maxVideoMegabytes(): int
     {
-        return (int) config('upload_compression.max_video_mb', 200);
+        return max(1, (int) floor($this->maxVideoKilobytes() / 1024));
     }
 
     /** @return array<string, string> */
@@ -898,8 +1209,13 @@ class PageSectionsController extends Controller
         $maxMb = $this->maxVideoMegabytes();
 
         return [
-            'videos.*.max' => "Each video file must be {$maxMb} MB or smaller.",
-            'highlight_items.*.video.max' => "Each highlight video must be {$maxMb} MB or smaller.",
+            'videos.*.max' => "Each video file must be {$maxMb} MB or smaller (server upload limit).",
+            'highlight_items.*.video.max' => "Each highlight video must be {$maxMb} MB or smaller (server upload limit).",
         ];
+    }
+
+    private function heroCarousel(): HeroCarouselService
+    {
+        return app(HeroCarouselService::class);
     }
 }

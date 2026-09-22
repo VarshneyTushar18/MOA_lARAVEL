@@ -11,7 +11,7 @@ class PagesController extends Controller
     public function list()
     {
         return view('pages_console.list', [
-            'pages' => Page::all()
+            'pages' => Page::where('slug', '!=', 'site-footer')->get()
         ]);
     }
 

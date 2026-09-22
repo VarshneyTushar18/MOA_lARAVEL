@@ -27,9 +27,16 @@ class ContactController extends Controller
     }
 
     public function index()
-{
-    $contacts = \App\Models\Contact::latest()->paginate(10);
+    {
+        $contacts = Contact::latest()->paginate(10);
 
-    return view('contacts_console.list', compact('contacts'));
-}
+        return view('contacts_console.list', compact('contacts'));
+    }
+
+    public function show($id)
+    {
+        $contact = Contact::findOrFail($id);
+
+        return view('contacts_console.show', compact('contact'));
+    }
 }

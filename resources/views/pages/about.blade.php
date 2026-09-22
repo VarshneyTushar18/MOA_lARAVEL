@@ -231,6 +231,8 @@
                                        data-gallery="gallery1">
                                         <img src="{{ asset('storage/'.$imagePath) }}"
                                              class="img-fluid"
+                                             loading="lazy"
+                                             decoding="async"
                                              alt="">
                                     </a>
                                 </div>

@@ -4,7 +4,10 @@
 
 <section class="w3-padding">
 
-    <h2>Edit User</h2>
+    <div class="console-page-header">
+        <h2 class="mb-0">Edit User</h2>
+        <a href="/console/users/list" class="btn btn-outline-secondary btn-sm">Back to User List</a>
+    </div>
 
     <form method="post" action="/console/users/edit/{{$user->id}}" novalidate class="w3-margin-bottom">
 
@@ -53,8 +56,6 @@
         <button type="submit" class="w3-button w3-green">Edit User</button>
 
     </form>
-
-    <a href="/console/users/list">Back to User List</a>
 
 </section>
 

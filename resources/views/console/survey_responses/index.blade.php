@@ -155,7 +155,9 @@
                             <td>{{ $response->created_at->format('d-m-Y h:i A') }}</td>
                             <td class="cell-action">
                                 <div class="d-flex gap-1 flex-wrap">
-                                    <a href="{{ route('console.survey_responses.show', $response) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a href="{{ route('console.survey_responses.show', $response) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>

@@ -67,7 +67,7 @@
                         @if($section->description)
                             <p class="small text-muted mb-3">{!! nl2br(e($section->description)) !!}</p>
                         @endif
-                        <img src="{{ asset('storage/'.$section->image) }}" class="img-fluid rounded mb-3" alt="{{ $section->title ?: 'Performance Report' }}">
+                        <img src="{{ asset('storage/'.$section->image) }}" class="img-fluid rounded mb-3" loading="lazy" decoding="async" alt="{{ $section->title ?: 'Performance Report' }}">
                         <a href="{{ asset('storage/'.$section->image) }}" target="_blank" class="btn btn-secondary btn-sm">View Image</a>
                     </div>
                 </div>
