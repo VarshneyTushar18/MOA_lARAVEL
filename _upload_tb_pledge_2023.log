@@ -1,0 +1,54 @@
+[12:07:56] Shifting existing videos +100 sort so 2023 appears first...
+[12:08:11] Bumped sort_order +100 for 95 existing videos
+total_videos=95
+[12:08:11] TB Pledge 2023 — 12 videos, 1815.7 MB
+[12:08:11] [1/12] 2023-05-12 | VID_20230512_103810.mp4 (21.3 MB) sort=1
+[12:08:37] Attached id=244 sort=1 size=22375623
+DONE videos=96
+[12:08:37] [1/12] COMPLETE — 1%
+[12:08:37] [2/12] 2023-05-17 | VID_20230517_104549.mp4 (13.5 MB) sort=2
+[12:09:05] Attached id=245 sort=2 size=14203973
+DONE videos=97
+[12:09:05] [2/12] COMPLETE — 2%
+[12:09:05] [3/12] 2023-06-16 | VID_20230616_103054.mp4 (482.1 MB) sort=3
+[12:10:39] Attached id=246 sort=3 size=505529893
+DONE videos=98
+[12:10:39] [3/12] COMPLETE — 28%
+[12:10:39] [4/12] 2023-06-21 | VID_20230621_100643.mp4 (11.6 MB) sort=4
+[12:11:18] Attached id=247 sort=4 size=12156477
+DONE videos=99
+[12:11:18] [4/12] COMPLETE — 29%
+[12:11:18] [5/12] 2023-06-21 | VID_20230621_100705.mp4 (46.3 MB) sort=5
+[12:11:49] Attached id=248 sort=5 size=48551015
+DONE videos=100
+[12:11:49] [5/12] COMPLETE — 32%
+[12:11:49] [6/12] 2023-06-21 | VID_20230621_101100.mp4 (560.7 MB) sort=6
+[12:14:21] TB Pledge 2023 — 12 videos, 1815.7 MB
+[12:14:21] [6/12] 2023-06-21 | VID_20230621_101100.mp4 (560.7 MB) sort=6
+[12:16:03] Attached id=253 sort=6 size=587977458
+DONE videos=105
+[12:16:03] [6/12] COMPLETE — 63%
+[12:16:03] [7/12] 2023-08-21 | VID_20230821_101914.mp4 (139.9 MB) sort=7
+[12:17:13] Attached id=254 sort=7 size=146729498
+DONE videos=106
+[12:17:13] [7/12] COMPLETE — 70%
+[12:17:13] [8/12] 2023-08-21 | VID_20230821_101956.mp4 (37.7 MB) sort=8
+[12:17:51] Attached id=255 sort=8 size=39557843
+DONE videos=107
+[12:17:51] [8/12] COMPLETE — 72%
+[12:17:51] [9/12] 2023-08-21 | VID_20230821_102347.mp4 (289.0 MB) sort=9
+[12:18:55] Attached id=256 sort=9 size=303057188
+DONE videos=108
+[12:18:55] [9/12] COMPLETE — 88%
+[12:18:55] [10/12] 2023-08-28 | VID_20230828_102050.mp4 (14.4 MB) sort=10
+[12:19:19] Attached id=257 sort=10 size=15109248
+DONE videos=109
+[12:19:19] [10/12] COMPLETE — 89%
+[12:19:19] [11/12] 2023-08-28 | VID_20230828_102126.mp4 (82.6 MB) sort=11
+[12:19:50] Attached id=258 sort=11 size=86604109
+DONE videos=110
+[12:19:50] [11/12] COMPLETE — 94%
+[12:19:50] [12/12] 2023-08-28 | VID_20230828_102309.mp4 (116.4 MB) sort=12
+[12:20:35] Attached id=259 sort=12 size=122014071
+DONE videos=111
+[12:20:35] [12/12] COMPLETE — 100%

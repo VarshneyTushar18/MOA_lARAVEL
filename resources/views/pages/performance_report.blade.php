@@ -3,19 +3,38 @@
 @section('content')
 
 @php
-    $grouped = $page->sections->groupBy('section_key');
-    $reportSections = $page->sections->sortBy(function ($section) {
-        $order = (int) ($section->sort_order ?? 0);
-        if ($order <= 0) {
-            $order = 100000 + (int) $section->id;
+    if (!function_exists('resolveStoragePath')) {
+        function resolveStoragePath($path) {
+            if (!$path) return null;
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            $normalized = ltrim(str_replace('\\', '/', $path), '/');
+            if (str_starts_with($normalized, 'storage/')) {
+                $normalized = substr($normalized, strlen('storage/'));
+            }
+            if ($disk->exists($normalized) || $disk->exists($path)) {
+                return $normalized;
+            }
+            if (is_file(public_path('storage/'.$normalized))) {
+                return $normalized;
+            }
+            return $path;
         }
-        return sprintf('%010d-%010d', $order, (int) $section->id);
-    })->values();
+    }
+
+    $reportSections = $page->sections
+        ->filter(function ($section) {
+            return empty($section->parent_id);
+        })
+        ->sortBy(function ($section) {
+            $order = (int) ($section->sort_order ?? 0);
+            if ($order <= 0) {
+                $order = 100000 + (int) $section->id;
+            }
+            return sprintf('%010d-%010d', $order, (int) $section->id);
+        })
+        ->values();
 @endphp
 
-
-
-{{-- ================= PAGE HEADER ================= --}}
 <section class="page-header">
     <div class="container">
         <div class="row">
@@ -31,107 +50,16 @@
     </div>
 </section>
 
-
-{{-- ============================= --}}
-{{-- PERFORMANCE REPORT --}}
-{{-- ============================= --}}
-{{-- ============================= --}}
-{{-- PERFORMANCE REPORT --}}
-{{-- ============================= --}}
 @if($reportSections->count())
-<section class="ntpcsection mt-5">
+<section class="ntpcsection mt-5 mb-5">
     <div class="container">
         <div class="accordion" id="performanceAccordion">
             @foreach($reportSections as $section)
-            @php
-                $pdfs = $section->media->where('type', 'pdf');
-                $hasImage = !empty($section->image);
-            @endphp
-            @continue(!$pdfs->count() && !$hasImage && !filled($section->description))
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="performanceHeading{{ $section->id }}">
-                    <button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#performanceCollapse{{ $section->id }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="performanceCollapse{{ $section->id }}">
-                        {{ $section->title ?: 'Performance Report' }}
-                    </button>
-                </h2>
-                <div id="performanceCollapse{{ $section->id }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}" aria-labelledby="performanceHeading{{ $section->id }}" data-bs-parent="#performanceAccordion">
-                    <div class="accordion-body">
-
-        <div class="row g-4">
-            @if($hasImage)
-                <div class="col-md-4">
-                    <div class="card shadow-sm p-4 text-center h-100">
-                        @if($section->title)
-                            <h5 class="mb-2 fw-bold">{{ $section->title }}</h5>
-                        @endif
-                        @if($section->description)
-                            <p class="small text-muted mb-3">{!! nl2br(e($section->description)) !!}</p>
-                        @endif
-                        <img src="{{ asset('storage/'.$section->image) }}" class="img-fluid rounded mb-3" loading="lazy" decoding="async" alt="{{ $section->title ?: 'Performance Report' }}">
-                        <a href="{{ asset('storage/'.$section->image) }}" target="_blank" class="btn btn-secondary btn-sm">View Image</a>
-                    </div>
-                </div>
-            @endif
-
-            @foreach($pdfs as $pdf)
-
-                @php
-                    $path = $pdf->file_path ?: null;
-                @endphp
-
-                @if($path)
-                <div class="col-md-4">
-                    <div class="card shadow-sm p-4 text-center h-100">
-
-                        {{-- SECTION TITLE --}}
-                        @if($section->title)
-                            <h5 class="mb-2 fw-bold">
-                                {{ $section->title }}
-                            </h5>
-                        @endif
-
-                        {{-- SECTION DESCRIPTION --}}
-                        @if($section->description)
-                            <p class="small text-muted mb-3">
-                                {!! nl2br(e($section->description)) !!}
-                            </p>
-                        @endif
-
-                        <hr>
-
-                        {{-- PDF TITLE --}}
-                        @if($pdf->title)
-                            <h6 class="mb-2">{{ $pdf->title }}</h6>
-                        @endif
-
-                        {{-- PDF DESCRIPTION --}}
-                        @if($pdf->description)
-                            <p class="small text-muted">
-                                {!! nl2br(e($pdf->description)) !!}
-                            </p>
-                        @endif
-
-                        <a href="{{ asset('storage/'.$pdf->file_path) }}"
-               download="{{ pathinfo($pdf->file_path, PATHINFO_BASENAME) }}"
-               class="btn btn-primary btn-sm">
-               Download PDF
-            </a>
-            <a href="{{ asset('storage/'.$pdf->file_path) }}"
-               target="_blank"
-               class="btn btn-secondary btn-sm mt-2">
-               View Online
-            </a>
-
-                    </div>
-                </div>
-                @endif
-
-            @endforeach
-        </div>
-
-                    </div>
-                </div>
-            </div>
+                @include('partials.acsm-section', [
+                    'section' => $section,
+                    'isFirst' => $loop->first,
+                    'accordionParent' => 'performanceAccordion',
+                ])
             @endforeach
         </div>
     </div>
@@ -141,3 +69,23 @@
 @include('partials.page-faq')
 
 @endsection
+
+@push('scripts')
+@include('partials.acsm-gallery-scripts')
+<script>
+if (typeof GLightbox === 'function') {
+    GLightbox({ selector: '.glightbox' });
+}
+
+document.querySelectorAll('#performanceAccordion .accordion-collapse').forEach(function (panel) {
+    panel.addEventListener('shown.bs.collapse', function () {
+        pauseAcsmVideos(panel);
+        initAcsmCarouselsIn(panel);
+    });
+});
+
+document.querySelectorAll('#performanceAccordion .accordion-collapse.show').forEach(function (panel) {
+    initAcsmCarouselsIn(panel);
+});
+</script>
+@endpush

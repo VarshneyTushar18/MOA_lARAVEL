@@ -3,59 +3,95 @@
 namespace App\Imports;
 
 use App\Models\Patient;
+use App\Support\OpdPatientFields;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-
-use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class PatientsImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
     public function model(array $row)
-{
-    if (empty($row['name'])) {
-        return null;
+    {
+        $row = $this->normalizeRow($row);
+
+        if (empty($row['name'])) {
+            return null;
+        }
+
+        $adhaar = isset($row['adhaar_no']) ? trim((string) $row['adhaar_no']) : null;
+        if ($adhaar === '') {
+            $adhaar = null;
+        }
+
+        $date = null;
+        if (! empty($row['date'])) {
+            if (is_numeric($row['date'])) {
+                $date = \Carbon\Carbon::instance(ExcelDate::excelToDateTimeObject($row['date']))->format('Y-m-d');
+            } else {
+                $date = \Carbon\Carbon::parse($row['date'])->format('Y-m-d');
+            }
+        }
+
+        $attributes = [
+            'date' => $date,
+            'file_no' => $row['file_no'] ?? null,
+            'adhaar_no' => $adhaar,
+        ];
+
+        foreach (OpdPatientFields::definitions() as $field) {
+            $key = $field['key'];
+            if (array_key_exists($key, $attributes)) {
+                continue;
+            }
+
+            $attributes[$key] = $row[$key] ?? null;
+        }
+
+        return new Patient($attributes);
     }
 
-    // Normalize Aadhaar field (Indian Aadhaar is 12 digits; CSV may use dashes/spaces)
-    $adhaar = $row['adhaar_no'] ?? $row['adahar_no'] ?? null;
-    if ($adhaar !== null && $adhaar !== '') {
-        $digits = preg_replace('/\D/', '', (string) $adhaar);
-        $adhaar = strlen($digits) === 12 ? $digits : null;
-    }
+    private function normalizeRow(array $row): array
+    {
+        $aliases = [
+            'adhaar_no' => ['adhaar_no', 'adhar_no', 'aadhar_no', 'aadhaar_no'],
+            'uhid_no' => ['uhid_no', 'uhid_no', 'ltbi_no'],
+            'visit_follow_up' => ['visit_follow_up', 'visitfollow_up', 'visit_follow_up'],
+            'h_o_tb_other_investigations' => [
+                'h_o_tb_other_investigations',
+                'h_o_tuberculosis',
+                'ho_tuberculosis',
+                'history_of_tuberculosis',
+            ],
+            'cbc_esr' => ['cbc_esr', 'cbc_esr'],
+            'xray_cect_hrct' => ['xray_cect_hrct', 'x_ray_cect_chest'],
+            'gene_xpert' => [
+                'gene_xpert',
+                'gene_xpert_for_mtb_dna_pcr_mtb_sputum_for_afb_cbnaat_trunaat',
+            ],
+            'usg_wa_ct_scan' => ['usg_wa_ct_scan', 'cect_usg_wa'],
+            'cd4_cd8' => ['cd4_cd8', 'cd4_cd8'],
+            'il2' => ['il2', 'il_2'],
+            'vit_d' => ['vit_d', 'vit_d'],
+            'ltbi_qs_10' => ['ltbi_qs_10', 'ltbi_qs_10'],
+            'ltbi_qs_09' => ['ltbi_qs_09', 'ltbi_qs_9'],
+        ];
 
-    return new Patient([
-        'date' => isset($row['date']) 
-            ? \Carbon\Carbon::instance(ExcelDate::excelToDateTimeObject($row['date']))->format('Y-m-d')
-            : null,
-        'uhid_no' => $row['uhid_no'] ?? null,
-        'file_no' => $row['file_no'] ?? null,
-        'adhaar_no' => $adhaar,
-        'name' => $row['name'],
-        'age' => $row['age'] ?? null,
-        'sex' => $row['sex'] ?? null,
-        'visit_follow_up' => $row['visit_follow_up'] ?? null,
-        'address' => $row['address'] ?? null,
-        'diagnosis' => $row['diagnosis'] ?? null,
-        'investigation' => $row['investigation'] ?? null,
-        'medicines' => $row['medicines'] ?? null,
-        'h_o_tb_other_investigations' => $row['h_o_tb_other_investigations'] ?? null,
-        'tb_gold' => $row['tb_gold'] ?? null,
-        'montoux_test' => $row['montoux_test'] ?? null,
-        'cbc_esr' => $row['cbc_esr'] ?? null,
-        'xray_cect_hrct' => $row['xray_cect_hrct'] ?? null,
-        'gene_xpert' => $row['gene_xpert'] ?? null,
-        'usg_wa_ct_scan' => $row['usg_wa_ct_scan'] ?? null,
-        'cd4_cd8' => $row['cd4_cd8'] ?? null,
-        'ige' => $row['ige'] ?? null,
-        'vit_d' => $row['vit_d'] ?? null,
-        'lft' => $row['lft'] ?? null,
-        'rft' => $row['rft'] ?? null,
-        'il2' => $row['il2'] ?? null,
-        'contact_details' => $row['contact_details'] ?? null,
-        'ltbi_qs_10' => $row['ltbi_qs_10'] ?? null,
-        'ltbi_qs_09' => $row['ltbi_qs_09'] ?? null,
-        'refer' => $row['refer'] ?? null,
-    ]);
+        $normalized = $row;
+
+        foreach ($aliases as $target => $keys) {
+            if (! empty($normalized[$target])) {
+                continue;
+            }
+
+            foreach ($keys as $key) {
+                if (! empty($normalized[$key])) {
+                    $normalized[$target] = $normalized[$key];
+                    break;
+                }
+            }
+        }
+
+        return $normalized;
     }
 }

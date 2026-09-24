@@ -59,8 +59,7 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label>REGISTRATION (UHID NUMBER / SCREENING NUMBER / AADHAR NUMBER) (पंजीकरण संख्या (विशिष्ट स्वास्थ्य पहचान नंबर) / स्क्रीनिंग नंबर / आधार नंबर) <span class="text-danger">*</span></label>
-                        <input type="text" name="registration_number" class="form-control" value="{{ old('registration_number') }}" required maxlength="255" inputmode="text" aria-describedby="registration_number_hint">
-                        <small id="registration_number_hint" class="form-text text-muted">Aadhaar must be exactly 12 digits (spaces optional). Other IDs may include letters as printed on the card.</small>
+                        <input type="text" name="registration_number" class="form-control" value="{{ old('registration_number') }}" required maxlength="255" inputmode="text">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label>DATE (तिथि)</label>
@@ -75,7 +74,7 @@
                 <h4 class="mt-3 mb-3">PRESENT SYMPTOMS (वर्तमान लक्षण)</h4>
                 <div class="row">
                     @php
-                        $yesNoFields = [
+                        $presentSymptomFields = [
                             'frequent_cold_or_respiratory_allergy' => '1. FREQUENT COLD/ RESPIRATORY ALLERGY (>= 4 TIMES/YEAR) (बार-बार सर्दी-जुकाम/श्वसन एलर्जी (>= 4 बार/वर्ष))',
                             'unable_to_gain_weight_or_weight_loss' => '3. INABILITY TO GAIN BODY WEIGHT OR RECENT SIGNIFICANT BODY WEIGHT REDUCTION (>= 4 KG/MONTH) (शरीर का वजन बढ़ने में असमर्थता/हाल ही में महत्वपूर्ण (>= 4 किलो/माह) शरीर के वजन में कमी)',
                             'excessive_anger_or_stress_irritability' => '4. EXCESSIVE ANGER / STRESS REFLECTED BY EASY IRRITABILITY (अत्यधिक गुस्सा /तनाव परिलक्षित चिड़चिड़ापन)',
@@ -87,18 +86,28 @@
                             'frequent_headache_dizziness_lightheadedness' => '10. FREQUENT HEADACHE/ DIZZINESS/ LIGHTHEADEDNESS (>= 4 TIMES/MONTH) (बार-बार सिरदर्द /चक्कर आना (>= 4 बार/महीना))',
                         ];
                         $digestiveSelections = old('persistent_digestive_defecation_complaints', []);
+                        $selectedRiskStage = old('risk_stage');
                     @endphp
+
+                    <div class="col-md-12 mb-3">
+                        <label>{{ $presentSymptomFields['frequent_cold_or_respiratory_allergy'] }}</label>
+                        <select name="frequent_cold_or_respiratory_allergy" class="form-control">
+                            <option value="">Select</option>
+                            <option value="YES" @selected(old('frequent_cold_or_respiratory_allergy')==='YES')>YES</option>
+                            <option value="NO" @selected(old('frequent_cold_or_respiratory_allergy')==='NO')>NO</option>
+                        </select>
+                    </div>
 
                     <div class="col-md-12 mb-3">
                         <label>2. PERSISTENT COMPLAINTS RELATED TO DIGESTION AND DEFECATION (PERSISTENT FOR MORE THAN 3 MONTHS CAN ONLY BE CONSIDERED AS POSITIVE)<br>पाचन और शौच से संबंधित लगातार शिकायतें (3 महीने से अधिक तक बने रहने को ही सकारात्मक माना जा सकता है।)</label>
                         <div class="border rounded p-3">
                             @foreach([
-                                'LOSS_OF_APPETITE' => 'Loss of appetite',
-                                'CHRONIC_CONSTIPATION' => 'Chronic constipation',
-                                'EXCESSIVE_BELCHING_FLATUS' => 'Excessive belching/flatus',
-                                'HARD_STOOL' => 'Hard stool',
-                                'ALTERED_BOWEL_HABIT' => 'Altered bowel habit',
-                                'BLOATING_HEAVINESS_AFTER_MEAL' => 'Bloating/heaviness in abdomen after meal'
+                                'LOSS_OF_APPETITE' => 'LOSS OF APPETITE (भूख न लगना)',
+                                'CHRONIC_CONSTIPATION' => 'CHRONIC CONSTIPATION (पुराना कब्ज)',
+                                'EXCESSIVE_BELCHING_FLATUS' => 'EXCESSIVE BELCHING/ FLATUS (अत्यधिक डकार आना/पेट फूलना)',
+                                'HARD_STOOL' => 'HARD STOOL (कठोर मल)',
+                                'ALTERED_BOWEL_HABIT' => 'ALTERED BOWEL HABIT (परिवर्तित आंत्र आदत)',
+                                'BLOATING_HEAVINESS_AFTER_MEAL' => 'BLOATING/ HEAVINESS IN ABDOMEN AFTER MEAL (खाने के बाद पेट फुलना/भारीपन)',
                             ] as $value => $label)
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" name="persistent_digestive_defecation_complaints[]" id="digestive_{{ $value }}" value="{{ $value }}" @checked(in_array($value, $digestiveSelections, true))>
@@ -108,7 +117,7 @@
                         </div>
                     </div>
 
-                    @foreach($yesNoFields as $field => $label)
+                    @foreach(collect($presentSymptomFields)->except('frequent_cold_or_respiratory_allergy') as $field => $label)
                         <div class="col-md-6 mb-3">
                             <label>{{ $label }}</label>
                             <select name="{{ $field }}" class="form-control">
@@ -119,13 +128,20 @@
                         </div>
                     @endforeach
 
-                    <div class="col-md-12 mb-2">
-                        <label class="mb-0">11. Stages</label>
-                        <ul class="mb-0">
-                            <li>1-3 Low Risk</li>
-                            <li>4-6 Moderate Risk</li>
-                            <li>7-10 High Risk</li>
-                        </ul>
+                    <div class="col-md-12 mb-3">
+                        <label class="mb-2">11. Stages</label>
+                        <div class="border rounded p-3">
+                            @foreach([
+                                'LOW_RISK_1_3' => '1-3 Low Risk',
+                                'MODERATE_RISK_4_6' => '4-6 Moderate Risk',
+                                'HIGH_RISK_7_10' => '7-10 High Risk',
+                            ] as $value => $label)
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="risk_stage" id="risk_stage_{{ $value }}" value="{{ $value }}" @checked($selectedRiskStage === $value)>
+                                    <label class="form-check-label" for="risk_stage_{{ $value }}">{{ $label }}</label>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 
@@ -185,6 +201,11 @@
                             1+2+4 लक्षणों की उपस्थिति पर स्क्रीनिंग अधिकारी द्वारा निकटतम डॉट्स केंद्र पर भेजा जाना चाहिए।
                         </div>
                     </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label>Any other relevant information given by the screening officer?<br>स्क्रीनिंग अधिकारी द्वारा दी गई अन्य प्रासंगिक जानकारी?</label>
+                        <textarea name="other_relevant_information_by_screening_officer" class="form-control" rows="3" placeholder="Enter answer here...">{{ old('other_relevant_information_by_screening_officer') }}</textarea>
+                    </div>
                 </div>
 
                 <h4 class="mt-3 mb-3">HISTORY OF ANTI TUBERCULAR TREATMENT (टीबी रोगी के पूर्व उपचार का विवरण)</h4>
@@ -227,10 +248,6 @@
 
                 <h4 class="mt-3 mb-3">REMARKS & FEEDBACK (टिप्पणियां और प्रतिक्रिया)</h4>
                 <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label>ANY OTHER RELEVANT INFORMATION GIVEN BY THE SCREENING OFFICER<br>स्क्रीनिंग अधिकारियों द्वारा दी गई अन्य महत्वपूर्ण जानकारी</label>
-                        <textarea name="other_relevant_information_by_screening_officer" class="form-control" rows="2">{{ old('other_relevant_information_by_screening_officer') }}</textarea>
-                    </div>
                     <div class="col-md-12 mb-3">
                         <label>REMARKS (टिप्पणियां) / PLEDGE</label>
                         <textarea name="remarks" class="form-control" rows="6">{{ old('remarks', 'I pledge that I will give my active co-operation to make "Bharat" Tuberculosis free. I will faithfully discharge my responsibilities towards the health of my family and my society. Even if someone around me is suffering from TB and is not taking treatment, then I will encourage him/her to take proper treatment and give every possible help to fight against tuberculosis. I promise that I will use mask and do not spit in public places in case if suffering from respiratory illness. I repeat my pledge to make "Bharat" free of Tuberculosis.
@@ -284,14 +301,13 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6 mb-3">
-                        <label>PRINCIPAL INVESTIGATOR (प्रमुख अन्वेषक)</label>
-                        <input type="text" name="principal_investigator" class="form-control" value="{{ old('principal_investigator') }}">
-                    </div>
-
                     <div class="col-md-12 mb-3">
                         <label>Investigator Name, Designation and Affiliation, Email ID (अन्वेषक का नाम, पदनाम और संबद्धता, ईमेल आईडी) <span class="text-danger">*</span></label>
                         <textarea name="investigator_name_designation_affiliation_email" class="form-control" rows="2" required>{{ old('investigator_name_designation_affiliation_email') }}</textarea>
+                    </div>
+
+                    <div class="col-md-12 mb-3 text-center">
+                        <h5 class="mb-0">PRINCIPAL INVESTIGATOR (प्रमुख अन्वेषक)</h5>
                     </div>
                 </div>
 

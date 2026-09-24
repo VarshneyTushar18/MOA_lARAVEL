@@ -61,6 +61,18 @@
             </a>
         </div>
 
+        <!-- Patient Corner Access -->
+        <div class="col-md-4 col-lg-4">
+            <a href="{{ route('console.patient_corner_access.edit') }}" class="text-decoration-none">
+                <div class="card shadow-sm h-100 text-center p-4 hover-shadow">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-lock fa-2x text-danger"></i>
+                    </div>
+                    <h5 class="mb-0">Patient Corner Access</h5>
+                </div>
+            </a>
+        </div>
+
         <!-- Contacts -->
         <div class="col-md-4 col-lg-4">
             <a href="/console/contacts/list" class="text-decoration-none">

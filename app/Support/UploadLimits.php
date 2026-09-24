@@ -47,4 +47,31 @@ class UploadLimits
 
         return round($bytes / 1024, 0).' KB';
     }
+
+    public static function maxFileUploads(): int
+    {
+        $value = (int) ini_get('max_file_uploads');
+
+        return $value > 0 ? $value : 20;
+    }
+
+    /** Safe batch size for multi-image admin uploads (leaves room for other fields). */
+    public static function imageUploadBatchSize(): int
+    {
+        $max = self::maxFileUploads();
+
+        return max(10, min(25, $max - 2));
+    }
+
+    /** Laravel validation rule value (KB) for a single uploaded file. */
+    public static function validationMaxKilobytes(): int
+    {
+        $bytes = self::uploadMaxBytes();
+
+        if ($bytes >= PHP_INT_MAX / 2) {
+            return 3145728;
+        }
+
+        return max(1, (int) floor($bytes / 1024));
+    }
 }

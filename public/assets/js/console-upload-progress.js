@@ -1,5 +1,6 @@
 /**
  * Admin console: upload progress for multipart forms (videos, images, CSV, etc.)
+ * Large image sets are sent in automatic batches (500+ supported in one submit).
  */
 (function () {
     'use strict';
@@ -21,6 +22,27 @@
         });
 
         return files;
+    }
+
+    function collectImageFiles(form) {
+        const input = form.querySelector('input[type="file"][name="images[]"]');
+
+        return input ? Array.from(input.files || []) : [];
+    }
+
+    function collectVideoFiles(form) {
+        const input = form.querySelector('input[type="file"][name="videos[]"]');
+
+        return input ? Array.from(input.files || []) : [];
+    }
+
+    function chunkArray(items, size) {
+        const chunks = [];
+        for (let i = 0; i < items.length; i += size) {
+            chunks.push(items.slice(i, i + size));
+        }
+
+        return chunks;
     }
 
     function ensureOverlay() {
@@ -138,22 +160,45 @@
         return body && body.dataset.phpUploadMaxLabel ? body.dataset.phpUploadMaxLabel : 'the PHP limit';
     }
 
-    function videoCompressAsync() {
+    function imageUploadBatchSize() {
         const body = document.body;
+        const parsed = body && body.dataset.phpImageBatchSize
+            ? parseInt(body.dataset.phpImageBatchSize, 10)
+            : 20;
 
-        return !!(body && body.dataset.videoCompressAsync === '1');
+        return Number.isFinite(parsed) && parsed > 0 ? Math.min(25, parsed) : 20;
     }
 
-    function uploadCompressionEnabled() {
+    function imageUploadBatchMaxBytes() {
         const body = document.body;
+        const parsed = body && body.dataset.phpImageBatchMaxMb
+            ? parseFloat(body.dataset.phpImageBatchMaxMb, 10)
+            : 150;
 
-        return !!(body && body.dataset.uploadCompressionEnabled === '1');
+        return Number.isFinite(parsed) && parsed > 0 ? parsed * 1024 * 1024 : 150 * 1024 * 1024;
     }
 
-    function hasVideoFile(files) {
-        return files.some(function (f) {
-            return (f.type || '').indexOf('video/') === 0;
+    function makeImageBatches(files, maxCount, maxBytes) {
+        const batches = [];
+        let current = [];
+        let currentBytes = 0;
+
+        files.forEach(function (file) {
+            const size = file.size || 0;
+            if (current.length > 0 && (current.length >= maxCount || currentBytes + size > maxBytes)) {
+                batches.push(current);
+                current = [];
+                currentBytes = 0;
+            }
+            current.push(file);
+            currentBytes += size;
         });
+
+        if (current.length > 0) {
+            batches.push(current);
+        }
+
+        return batches;
     }
 
     function responseLooksLikeValidationError(html) {
@@ -182,33 +227,7 @@
         return payload.message || null;
     }
 
-    function uploadForm(form) {
-        const files = collectFiles(form);
-        const meta = describeFiles(files);
-        const overlay = ensureOverlay();
-        const xhr = new XMLHttpRequest();
-        const phpMax = phpUploadMaxBytes();
-
-        if (phpMax && meta.total > phpMax) {
-            ensureOverlay();
-            showOverlay(overlay);
-            setOverlayState(
-                overlay,
-                100,
-                meta.total,
-                meta.total,
-                'File too large for PHP',
-                'Your files are ' + formatMb(meta.total) + ' but this server only allows ' + phpUploadMaxLabel()
-                    + ' per request. Run: php artisan serve:large  (or .\\serve-large-uploads.bat)',
-                'error'
-            );
-            return;
-        }
-
-        const formData = new FormData(form);
-        const keyInput = form.querySelector('[name="section_key"]');
-        const sectionKey = keyInput ? String(keyInput.value || '').trim() : '';
-
+    function stripIrrelevantFields(formData, sectionKey) {
         if (sectionKey !== 'home_marquee') {
             [...formData.keys()].forEach(function (name) {
                 if (name.indexOf('marquee_links') === 0 || name === 'text_color' || name === 'bg_color') {
@@ -224,60 +243,271 @@
                 }
             });
         }
+    }
 
-        showOverlay(overlay);
-        setFormDisabled(form, true);
-        setOverlayState(overlay, 0, 0, meta.total, 'Uploading…', meta.detail, 'active');
+    function buildFormDataForBatch(form, imageBatch, batchIndex, sectionKey) {
+        const formData = new FormData(form);
 
-        xhr.upload.addEventListener('progress', function (ev) {
-            if (!ev.lengthComputable) {
-                setOverlayState(overlay, 0, 0, meta.total, 'Uploading…', meta.detail, 'active');
-                return;
-            }
-
-            const pct = (ev.loaded / ev.total) * 100;
-            let statusText = 'Uploading…';
-            let detail = meta.detail;
-            if (pct >= 100) {
-                statusText = 'Saving…';
-            }
-            setOverlayState(overlay, pct, ev.loaded, ev.total, statusText, detail, 'active');
+        formData.delete('images[]');
+        imageBatch.forEach(function (file) {
+            formData.append('images[]', file, file.name);
         });
 
-        xhr.addEventListener('load', function () {
-            const contentType = xhr.getResponseHeader('Content-Type') || '';
+        if (batchIndex > 0) {
+            ['image', 'videos[]', 'pdfs[]', 'audios[]'].forEach(function (name) {
+                formData.delete(name);
+            });
+            form.querySelectorAll('input[type="file"]').forEach(function (input) {
+                if (input.name !== 'images[]') {
+                    formData.delete(input.name);
+                }
+            });
+        }
 
-            if (contentType.indexOf('application/json') !== -1) {
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    if (data.redirect) {
-                        setOverlayState(
-                            overlay,
-                            100,
-                            meta.total,
-                            meta.total,
-                            'Done',
-                            'Upload complete.',
-                            'success'
-                        );
-                        window.setTimeout(function () {
-                            window.location.href = data.redirect;
-                        }, 400);
-                        return;
-                    }
-                } catch (parseError) {
-                    // Fall through to HTML handling.
+        stripIrrelevantFields(formData, sectionKey);
+
+        return formData;
+    }
+
+    function sendFormData(form, formData, options) {
+        options = options || {};
+
+        return new Promise(function (resolve, reject) {
+            const xhr = new XMLHttpRequest();
+
+            xhr.addEventListener('load', function () {
+                resolve({
+                    status: xhr.status,
+                    responseText: xhr.responseText,
+                    contentType: xhr.getResponseHeader('Content-Type') || '',
+                    responseURL: xhr.responseURL,
+                });
+            });
+
+            xhr.addEventListener('error', function () {
+                reject(new Error('Network error'));
+            });
+
+            xhr.addEventListener('abort', function () {
+                reject(new Error('Upload aborted'));
+            });
+
+            xhr.open(form.method || 'POST', form.action, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Accept', 'application/json, text/html');
+            if (typeof options.batchIndex === 'number') {
+                xhr.setRequestHeader('X-Image-Batch-Index', String(options.batchIndex));
+            }
+            if (typeof options.videoBatchIndex === 'number') {
+                xhr.setRequestHeader('X-Video-Batch-Index', String(options.videoBatchIndex));
+            }
+            xhr.send(formData);
+        });
+    }
+
+    function buildFormDataForVideoBatch(form, videoFile, batchIndex, sectionKey) {
+        const formData = new FormData(form);
+
+        formData.delete('videos[]');
+        formData.append('videos[]', videoFile, videoFile.name);
+
+        if (batchIndex > 0) {
+            ['image', 'images[]', 'pdfs[]', 'audios[]'].forEach(function (name) {
+                formData.delete(name);
+            });
+            form.querySelectorAll('input[type="file"]').forEach(function (input) {
+                if (input.name !== 'videos[]') {
+                    formData.delete(input.name);
+                }
+            });
+        }
+
+        stripIrrelevantFields(formData, sectionKey);
+
+        return formData;
+    }
+
+    function handleUploadResponse(form, overlay, meta, response) {
+        const contentType = response.contentType;
+
+        if (contentType.indexOf('application/json') !== -1) {
+            try {
+                const data = JSON.parse(response.responseText);
+                if (data.redirect) {
+                    return { ok: true, redirect: data.redirect };
+                }
+            } catch (parseError) {
+                // Fall through.
+            }
+        }
+
+        if (response.status === 413) {
+            return {
+                ok: false,
+                title: 'Upload too large',
+                detail: 'File exceeds the server upload limit (' + phpUploadMaxLabel() + '). Upload one large file at a time, or ask hosting to raise PHP/nginx limits.',
+            };
+        }
+
+        if (response.status === 419) {
+            return {
+                ok: false,
+                title: 'Session expired',
+                detail: 'Refresh the page and try again.',
+            };
+        }
+
+        if (response.status === 422) {
+            let detail = 'The server rejected the form. Fix the issue below and try again.';
+            try {
+                const data = JSON.parse(response.responseText);
+                const message = firstValidationMessage(data);
+                if (message) {
+                    detail = message;
+                }
+            } catch (parseError) {
+                if (responseLooksLikeValidationError(response.responseText)) {
+                    document.open();
+                    document.write(response.responseText);
+                    document.close();
+                    return { ok: false, handled: true };
                 }
             }
 
-            if (xhr.status === 413) {
+            return { ok: false, title: 'Upload not saved', detail: detail };
+        }
+
+        if (response.status >= 200 && response.status < 400) {
+            if (responseLooksLikeValidationError(response.responseText)) {
+                document.open();
+                document.write(response.responseText);
+                document.close();
+                return { ok: false, handled: true };
+            }
+
+            return {
+                ok: true,
+                redirect: response.responseURL || window.location.href,
+            };
+        }
+
+        var failDetail = 'Server returned ' + response.status + '. Please try again.';
+        try {
+            var failData = JSON.parse(response.responseText);
+            if (failData && failData.message) {
+                failDetail = failData.message;
+            }
+        } catch (parseError) {
+            // Keep generic message.
+        }
+
+        return {
+            ok: false,
+            title: 'Upload failed',
+            detail: failDetail,
+        };
+    }
+
+    function uploadSingleRequest(form, files, overlay) {
+        const meta = describeFiles(files);
+        const formData = new FormData(form);
+        const keyInput = form.querySelector('[name="section_key"]');
+        const sectionKey = keyInput ? String(keyInput.value || '').trim() : '';
+
+        stripIrrelevantFields(formData, sectionKey);
+
+        const xhr = new XMLHttpRequest();
+
+        return new Promise(function (resolve, reject) {
+            xhr.upload.addEventListener('progress', function (ev) {
+                if (!ev.lengthComputable) {
+                    setOverlayState(overlay, 0, 0, meta.total, 'Uploading…', meta.detail, 'active');
+                    return;
+                }
+
+                const pct = (ev.loaded / ev.total) * 100;
+                let statusText = 'Uploading…';
+                let detail = meta.detail;
+                if (pct >= 100) {
+                    statusText = 'Processing on server…';
+                    if (files.length > 1) {
+                        detail = 'Upload finished. Saving ' + files.length + ' files on the server…';
+                    }
+                }
+                setOverlayState(overlay, pct, ev.loaded, ev.total, statusText, detail, 'active');
+            });
+
+            xhr.addEventListener('load', function () {
+                resolve({
+                    status: xhr.status,
+                    responseText: xhr.responseText,
+                    contentType: xhr.getResponseHeader('Content-Type') || '',
+                    responseURL: xhr.responseURL,
+                });
+            });
+
+            xhr.addEventListener('error', function () {
+                reject(new Error('Network error'));
+            });
+
+            xhr.open(form.method || 'POST', form.action, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Accept', 'application/json, text/html');
+            xhr.send(formData);
+        }).then(function (response) {
+            return handleUploadResponse(form, overlay, meta, response);
+        });
+    }
+
+    async function uploadBatchedImages(form, imageFiles, overlay) {
+        const batchSize = imageUploadBatchSize();
+        const batches = makeImageBatches(imageFiles, batchSize, imageUploadBatchMaxBytes());
+        const totalBytes = imageFiles.reduce(function (sum, f) {
+            return sum + f.size;
+        }, 0);
+        const keyInput = form.querySelector('[name="section_key"]');
+        const sectionKey = keyInput ? String(keyInput.value || '').trim() : '';
+        let uploadedBytes = 0;
+        let lastRedirect = null;
+
+        for (let i = 0; i < batches.length; i += 1) {
+            const batch = batches[i];
+            const batchBytes = batch.reduce(function (sum, f) {
+                return sum + f.size;
+            }, 0);
+            const batchLabel = 'Batch ' + (i + 1) + ' of ' + batches.length + ' (' + batch.length + ' images)';
+
+            setOverlayState(
+                overlay,
+                totalBytes > 0 ? (uploadedBytes / totalBytes) * 100 : 0,
+                uploadedBytes,
+                totalBytes,
+                'Uploading ' + batchLabel + '…',
+                batch.map(function (f) {
+                    return f.name;
+                }).join(', '),
+                'active'
+            );
+
+            const formData = buildFormDataForBatch(form, batch, i, sectionKey);
+            const response = await sendFormData(form, formData, { batchIndex: i });
+            const result = handleUploadResponse(form, overlay, { total: totalBytes }, response);
+
+            if (!result.ok) {
+                if (result.handled) {
+                    form.dataset.uploadInProgress = '0';
+                    setFormDisabled(form, false);
+                    hideOverlay(overlay);
+                    return;
+                }
+
                 setOverlayState(
                     overlay,
                     100,
-                    meta.total,
-                    meta.total,
-                    'Upload too large',
-                    'File exceeds the server PHP upload limit. Use php artisan serve:large or raise post_max_size in php.ini.',
+                    uploadedBytes,
+                    totalBytes,
+                    result.title || 'Upload failed',
+                    (result.detail || '') + ' Failed during ' + batchLabel + '.',
                     'error'
                 );
                 form.dataset.uploadInProgress = '0';
@@ -285,22 +515,184 @@
                 return;
             }
 
-            if (xhr.status >= 200 && xhr.status < 400) {
-                if (responseLooksLikeValidationError(xhr.responseText)) {
+            uploadedBytes += batchBytes;
+            lastRedirect = result.redirect || lastRedirect;
+
+            setOverlayState(
+                overlay,
+                totalBytes > 0 ? (uploadedBytes / totalBytes) * 100 : 100,
+                uploadedBytes,
+                totalBytes,
+                'Saved ' + batchLabel,
+                'Uploaded ' + imageFiles.length + ' images in ' + batches.length + ' batches.',
+                'active'
+            );
+        }
+
+        setOverlayState(
+            overlay,
+            100,
+            totalBytes,
+            totalBytes,
+            'Done',
+            'All ' + imageFiles.length + ' images uploaded.',
+            'success'
+        );
+
+        window.setTimeout(function () {
+            window.location.href = lastRedirect || window.location.href;
+        }, 400);
+    }
+
+    async function uploadBatchedVideos(form, videoFiles, overlay) {
+        const totalBytes = videoFiles.reduce(function (sum, f) {
+            return sum + f.size;
+        }, 0);
+        const keyInput = form.querySelector('[name="section_key"]');
+        const sectionKey = keyInput ? String(keyInput.value || '').trim() : '';
+        let uploadedBytes = 0;
+        let lastRedirect = null;
+
+        for (let i = 0; i < videoFiles.length; i += 1) {
+            const video = videoFiles[i];
+            const batchLabel = 'Video ' + (i + 1) + ' of ' + videoFiles.length;
+
+            setOverlayState(
+                overlay,
+                totalBytes > 0 ? (uploadedBytes / totalBytes) * 100 : 0,
+                uploadedBytes,
+                totalBytes,
+                'Uploading ' + batchLabel + '…',
+                video.name + ' (' + formatMb(video.size) + ')',
+                'active'
+            );
+
+            const formData = buildFormDataForVideoBatch(form, video, i, sectionKey);
+            const response = await sendFormData(form, formData, { videoBatchIndex: i });
+            const result = handleUploadResponse(form, overlay, { total: totalBytes }, response);
+
+            if (!result.ok) {
+                if (result.handled) {
+                    form.dataset.uploadInProgress = '0';
+                    setFormDisabled(form, false);
+                    hideOverlay(overlay);
+                    return;
+                }
+
+                setOverlayState(
+                    overlay,
+                    100,
+                    uploadedBytes,
+                    totalBytes,
+                    result.title || 'Upload failed',
+                    (result.detail || '') + ' Failed during ' + batchLabel + '.',
+                    'error'
+                );
+                form.dataset.uploadInProgress = '0';
+                setFormDisabled(form, false);
+                return;
+            }
+
+            uploadedBytes += video.size || 0;
+            lastRedirect = result.redirect || lastRedirect;
+        }
+
+        setOverlayState(
+            overlay,
+            100,
+            totalBytes,
+            totalBytes,
+            'Done',
+            'All ' + videoFiles.length + ' videos uploaded.',
+            'success'
+        );
+
+        window.setTimeout(function () {
+            window.location.href = lastRedirect || window.location.href;
+        }, 400);
+    }
+
+    function uploadForm(form) {
+        const files = collectFiles(form);
+        const imageFiles = collectImageFiles(form);
+        const videoFiles = collectVideoFiles(form);
+        const meta = describeFiles(files);
+        const overlay = ensureOverlay();
+        const phpMax = phpUploadMaxBytes();
+        const batchSize = imageUploadBatchSize();
+        const needsImageBatching = imageFiles.length > batchSize || imageFiles.length > 15;
+        const needsVideoBatching = videoFiles.length > 1;
+
+        if (phpMax && meta.total > phpMax && !needsImageBatching && !needsVideoBatching) {
+            showOverlay(overlay);
+            setOverlayState(
+                overlay,
+                100,
+                meta.total,
+                meta.total,
+                'File too large for PHP',
+                'Your files are ' + formatMb(meta.total) + ' but this server only allows ' + phpUploadMaxLabel() + ' per request.',
+                'error'
+            );
+            form.dataset.uploadInProgress = '0';
+            return;
+        }
+
+        showOverlay(overlay);
+        setFormDisabled(form, true);
+
+        if (needsVideoBatching) {
+            uploadBatchedVideos(form, videoFiles, overlay).catch(function (error) {
+                setOverlayState(
+                    overlay,
+                    100,
+                    0,
+                    meta.total,
+                    'Upload failed',
+                    error && error.message ? error.message : 'Network error.',
+                    'error'
+                );
+                form.dataset.uploadInProgress = '0';
+                setFormDisabled(form, false);
+            });
+            return;
+        }
+
+        if (needsImageBatching) {
+            uploadBatchedImages(form, imageFiles, overlay).catch(function (error) {
+                setOverlayState(
+                    overlay,
+                    100,
+                    0,
+                    meta.total,
+                    'Upload failed',
+                    error && error.message ? error.message : 'Network error.',
+                    'error'
+                );
+                form.dataset.uploadInProgress = '0';
+                setFormDisabled(form, false);
+            });
+            return;
+        }
+
+        uploadSingleRequest(form, files, overlay)
+            .then(function (result) {
+                if (!result.ok) {
+                    if (result.handled) {
+                        return;
+                    }
+
                     setOverlayState(
                         overlay,
                         100,
                         meta.total,
                         meta.total,
-                        'Upload not saved',
-                        'The server rejected the file (often a PHP size limit). See the message on the page.',
+                        result.title || 'Upload failed',
+                        result.detail || '',
                         'error'
                     );
                     form.dataset.uploadInProgress = '0';
                     setFormDisabled(form, false);
-                    document.open();
-                    document.write(xhr.responseText);
-                    document.close();
                     return;
                 }
 
@@ -314,97 +706,22 @@
                     'success'
                 );
                 window.setTimeout(function () {
-                    window.location.href = xhr.responseURL || window.location.href;
+                    window.location.href = result.redirect || window.location.href;
                 }, 400);
-                return;
-            }
-
-            if (xhr.status === 419) {
+            })
+            .catch(function () {
                 setOverlayState(
                     overlay,
                     100,
                     meta.total,
                     meta.total,
-                    'Session expired',
-                    'Refresh the page and try again.',
+                    'Upload failed',
+                    'Network error. Check your connection and try again.',
                     'error'
                 );
                 form.dataset.uploadInProgress = '0';
                 setFormDisabled(form, false);
-                return;
-            }
-
-            if (xhr.status === 422) {
-                let detail = 'The server rejected the form. Fix the issue below and try again.';
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    const message = firstValidationMessage(data);
-                    if (message) {
-                        detail = message;
-                    }
-                } catch (parseError) {
-                    if (responseLooksLikeValidationError(xhr.responseText)) {
-                        document.open();
-                        document.write(xhr.responseText);
-                        document.close();
-                        form.dataset.uploadInProgress = '0';
-                        setFormDisabled(form, false);
-                        hideOverlay(overlay);
-                        return;
-                    }
-                }
-
-                setOverlayState(
-                    overlay,
-                    100,
-                    meta.total,
-                    meta.total,
-                    'Upload not saved',
-                    detail,
-                    'error'
-                );
-                form.dataset.uploadInProgress = '0';
-                setFormDisabled(form, false);
-                return;
-            }
-
-            setOverlayState(
-                overlay,
-                100,
-                meta.total,
-                meta.total,
-                'Upload failed',
-                'Server returned ' + xhr.status + '. Please try again.',
-                'error'
-            );
-            form.dataset.uploadInProgress = '0';
-            setFormDisabled(form, false);
-        });
-
-        xhr.addEventListener('error', function () {
-            setOverlayState(
-                overlay,
-                100,
-                meta.total,
-                meta.total,
-                'Upload failed',
-                'Network error. Check your connection and try again.',
-                'error'
-            );
-            form.dataset.uploadInProgress = '0';
-            setFormDisabled(form, false);
-        });
-
-        xhr.addEventListener('abort', function () {
-            hideOverlay(overlay);
-            form.dataset.uploadInProgress = '0';
-            setFormDisabled(form, false);
-        });
-
-        xhr.open(form.method || 'POST', form.action, true);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.setRequestHeader('Accept', 'application/json, text/html');
-        xhr.send(formData);
+            });
     }
 
     function init() {

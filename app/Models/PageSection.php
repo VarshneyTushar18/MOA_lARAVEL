@@ -37,7 +37,7 @@ class PageSection extends Model
 }
 public function media()
 {
-    return $this->hasMany(PageSectionMedia::class);
+    return $this->hasMany(PageSectionMedia::class)->orderBy('sort_order')->orderBy('id');
 }
 
 public function highlightItems()

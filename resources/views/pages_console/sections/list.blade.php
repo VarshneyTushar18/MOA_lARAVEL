@@ -45,7 +45,7 @@
                 <th>Type</th>
                 <th>Main Image</th>
                 <th>Additional Images</th>
-                <th>PDFs</th>
+                <th>PDF/PPT</th>
                 <th>Videos</th>
                 <th>Audios</th>
                 <th>Actions</th>
@@ -78,33 +78,43 @@
                         @endif
                     </td>
 
-                    {{-- Additional Images --}}
+                    {{-- Additional Images (count only on list — full gallery on Edit) --}}
                     <td>
-                        @forelse($section->images as $img)
-                            <img src="{{ asset('storage/'.$img->image) }}" class="console-thumb" alt="">
-                        @empty
+                        @if(($section->images_count ?? $section->images->count()) > 0)
+                            <span class="badge text-bg-secondary">{{ $section->images_count ?? $section->images->count() }} image(s)</span>
+                            <br><span class="w3-small w3-text-grey">Open Edit to view</span>
+                        @else
                             <span class="w3-text-grey">-</span>
-                        @endforelse
+                        @endif
                     </td>
 
-                    {{-- PDFs --}}
+                    {{-- PDFs (count only on list — full list on Edit) --}}
                     <td>
-                        @forelse($section->media->where('type','pdf') as $pdf)
-                            <a href="{{ asset('storage/'.$pdf->file_path) }}" target="_blank">PDF</a><br>
-                        @empty
+                        @php $pdfCount = $section->media->where('type', 'pdf')->count(); @endphp
+                        @if($pdfCount > 0)
+                            <span class="badge text-bg-secondary">{{ $pdfCount }} PDF/PPT</span>
+                            <br><span class="w3-small w3-text-grey">Open Edit to view</span>
+                        @else
                             <span class="w3-text-grey">-</span>
-                        @endforelse
+                        @endif
                     </td>
 
-                    {{-- Videos --}}
+                    {{-- Videos (count only on list — full list on Edit) --}}
                     <td>
-                        @foreach($section->media->where('type','video') as $video)
-                            <a href="{{ asset('storage/'.$video->file_path) }}" target="_blank">Local Video</a><br>
-                        @endforeach
-                        @foreach($section->media->where('type','youtube') as $yt)
-                            <a href="{{ $yt->youtube_url }}" target="_blank">YouTube</a><br>
-                        @endforeach
-                        @if($section->media->whereIn('type', ['video', 'youtube'])->count() === 0)
+                        @php
+                            $videoCount = $section->media->where('type', 'video')->count();
+                            $youtubeCount = $section->media->where('type', 'youtube')->count();
+                        @endphp
+                        @if($videoCount > 0)
+                            <span class="badge text-bg-secondary">{{ $videoCount }} video(s)</span>
+                            <br><span class="w3-small w3-text-grey">Open Edit to view</span>
+                        @endif
+                        @if($youtubeCount > 0)
+                            @if($videoCount > 0)<br>@endif
+                            <span class="badge text-bg-secondary">{{ $youtubeCount }} YouTube link(s)</span>
+                            <br><span class="w3-small w3-text-grey">Open Edit to view</span>
+                        @endif
+                        @if($videoCount === 0 && $youtubeCount === 0)
                             <span class="w3-text-grey">-</span>
                         @endif
                     </td>

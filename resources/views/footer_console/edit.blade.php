@@ -98,6 +98,11 @@
             <label for="email">Email</label>
             <input type="text" class="form-control" name="email" id="email" value="{{ $email }}">
         </div>
+        <div class="w3-margin-bottom">
+            <label for="map_embed">Google Map Embed</label>
+            <p class="w3-small text-muted mb-2">Paste the full iframe HTML from Google Maps (Share → Embed a map). Shown below the footer columns.</p>
+            <textarea class="form-control" name="map_embed" id="map_embed" rows="5">{{ $map_embed }}</textarea>
+        </div>
 
         <h4 class="mb-3 mt-4">Footer Bottom Bar</h4>
         <div class="w3-margin-bottom">

@@ -4,13 +4,23 @@
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">ID Card Upload #{{ $record->id }}</h2>
-        <div class="d-flex gap-2">
-            <a href="{{ route('console.idcard.download', $record->id) }}" class="btn btn-primary btn-sm">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('console.idcard.edit', $record->id) }}" class="btn btn-primary btn-sm">Edit</a>
+            <form action="{{ route('console.idcard.destroy', $record->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this ID card upload?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+            <a href="{{ route('console.idcard.download', $record->id) }}" class="btn btn-outline-primary btn-sm">
                 <i class="fa-solid fa-download me-1"></i> Download File
             </a>
             <a href="{{ route('console.idcard.list') }}" class="btn btn-outline-secondary btn-sm">Back</a>
         </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     <div class="card shadow-sm border-0">
         <div class="card-body">

@@ -2,31 +2,34 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PatientsExport;
+use App\Exports\PatientsListExport;
+use App\Http\Controllers\Concerns\FiltersConsoleDateRange;
+use App\Http\Controllers\Concerns\HandlesBulkSelection;
+use App\Imports\PatientsImport;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Models\Patient;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\PatientsExport;
-use App\Imports\PatientsImport;
 
 class PatientController extends Controller
 {
+    use FiltersConsoleDateRange, HandlesBulkSelection;
     // Save patient data
     public function store(Request $request)
     {
         $request->merge([
-            'adhaar_no' => preg_replace('/\D/', '', (string) $request->input('adhaar_no', '')),
+            'adhaar_no' => trim((string) $request->input('adhaar_no', '')),
             'age' => $request->filled('age') ? $request->input('age') : null,
         ]);
 
         $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\p{L}\p{M}\s.\'\-]+$/u'],
-            'adhaar_no' => ['required', 'digits:12'],
+            'adhaar_no' => ['required', 'string', 'max:255'],
             'uhid_no' => 'required|string|max:255',
             'file_no' => 'nullable|string|max:100',
             'age' => 'nullable|integer|min:0|max:120',
         ], [
-            'adhaar_no.digits' => 'Aadhaar number must be exactly 12 digits.',
             'name.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
         ]);
 
@@ -36,10 +39,13 @@ class PatientController extends Controller
     }
 
     // Show list in admin
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::orderByDesc('id')->paginate(50);
-        return view('patient_console.list', compact('patients'));
+        $query = Patient::query()->orderByDesc('id');
+        $filters = $this->dateRangeQuery($request, $query, 'date');
+        $patients = $query->paginate(25)->withQueryString();
+
+        return view('patient_console.list', compact('patients', 'filters'));
     }
 
     public function show($id)
@@ -47,6 +53,92 @@ class PatientController extends Controller
         $patient = Patient::findOrFail($id);
 
         return view('patient_console.show', compact('patient'));
+    }
+
+    public function edit($id)
+    {
+        $patient = Patient::findOrFail($id);
+
+        return view('patient_console.edit', compact('patient'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $patient = Patient::findOrFail($id);
+
+        $request->merge([
+            'adhaar_no' => trim((string) $request->input('adhaar_no', '')),
+            'age' => $request->filled('age') ? $request->input('age') : null,
+        ]);
+
+        $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:255', 'regex:/^[\p{L}\p{M}\s.\'\-]+$/u'],
+            'adhaar_no' => ['required', 'string', 'max:255'],
+            'uhid_no' => 'required|string|max:255',
+            'file_no' => 'nullable|string|max:100',
+            'age' => 'nullable|integer|min:0|max:120',
+        ], [
+            'name.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
+        ]);
+
+        $patient->update($request->only($patient->getFillable()));
+
+        return redirect()
+            ->route('console.patients.show', $patient->id)
+            ->with('success', 'Patient record updated successfully.');
+    }
+
+    public function destroy($id)
+    {
+        Patient::findOrFail($id)->delete();
+
+        return redirect()
+            ->route('console.patients.index')
+            ->with('success', 'Patient record deleted successfully.');
+    }
+
+    public function exportSelected(Request $request)
+    {
+        $ids = $this->validatedBulkIds($request);
+        $patients = Patient::whereIn('id', $ids)->orderByDesc('id')->get();
+
+        return Excel::download(
+            new PatientsListExport($patients),
+            'patients_selected_'.now()->format('Ymd_His').'.xlsx'
+        );
+    }
+
+    public function exportAll(Request $request)
+    {
+        $query = Patient::query()->orderByDesc('id');
+        $filters = $this->dateRangeQuery($request, $query, 'date');
+        $patients = $query->get();
+        $suffix = $this->hasDateRange($filters) ? 'filtered' : 'all';
+
+        return Excel::download(
+            new PatientsListExport($patients),
+            'patients_'.$suffix.'_'.now()->format('Ymd_His').'.xlsx'
+        );
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        if ($this->bulkUsesDateRange($request)) {
+            $query = Patient::query();
+            $this->dateRangeQuery($request, $query, 'date');
+            $deleted = $query->delete();
+
+            return redirect()
+                ->route('console.patients.index', $request->only(['from_date', 'to_date']))
+                ->with('success', $deleted.' patient record(s) deleted for the selected date range.');
+        }
+
+        $ids = $this->validatedBulkIds($request);
+        $deleted = Patient::whereIn('id', $ids)->delete();
+
+        return redirect()
+            ->route('console.patients.index', $request->only(['from_date', 'to_date']))
+            ->with('success', $deleted.' patient record(s) deleted successfully.');
     }
 
     public function search(Request $request)

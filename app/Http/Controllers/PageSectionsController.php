@@ -21,7 +21,8 @@ class PageSectionsController extends Controller
     public function list(Page $page)
     {
         $sections = $this->sectionsInDisplayOrder($page)
-            ->load(['images', 'media', 'parent', 'subsections'])
+            ->load(['media', 'parent', 'subsections'])
+            ->loadCount('images')
             ->filter(fn (PageSection $section) => ! $this->isHiddenAdminSection($page, $section))
             ->values();
 
@@ -51,6 +52,7 @@ class PageSectionsController extends Controller
         );
 
         $this->assertUploadsNotBlockedByPhp(request());
+        $this->extendUploadRuntime(request());
 
         if ($page->slug === 'home' && ($attributes['section_key'] ?? '') === 'marquee_link') {
             throw ValidationException::withMessages([
@@ -73,7 +75,7 @@ class PageSectionsController extends Controller
         $section->parent_id = $attributes['parent_id'] ?? null;
 
         if (request()->hasFile('image')) {
-            $section->image = CompressedUploadStorage::storeImage(request()->file('image'), 'page_sections', 'public');
+            $section->image = request()->file('image')->store('page_sections', 'public');
         }
 
         $section->save();
@@ -92,23 +94,17 @@ class PageSectionsController extends Controller
 
         // Multiple images
         if (request()->hasFile('images')) {
-            foreach (request()->file('images') as $file) {
-                $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
-                $image = $section->images()->create(['image' => $path]);
-                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
-                    $this->heroCarousel()->appendToOrder($section, ['k' => 'image', 'id' => $image->id]);
-                }
-            }
+            $this->storeSectionImages(request()->file('images'), $section, $page);
         }
 
         // PDFs
         if (request()->hasFile('pdfs')) {
             foreach (request()->file('pdfs') as $pdf) {
                 $path = $pdf->store('page_sections/pdfs', 'public');
-                $section->media()->create([
+                $this->createSectionMedia($section, [
                     'type' => 'pdf',
                     'file_path' => $path,
-                    'title' => request('new_pdf_title'),
+                    'title' => request('new_pdf_title') ?: pathinfo($pdf->getClientOriginalName(), PATHINFO_FILENAME),
                     'description' => request('new_pdf_description'),
                 ]);
             }
@@ -118,9 +114,10 @@ class PageSectionsController extends Controller
         if (request()->hasFile('videos')) {
             foreach (request()->file('videos') as $video) {
                 $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
-                $media = $section->media()->create([
+                $media = $this->createSectionMedia($section, [
                     'type' => 'video',
                     'file_path' => $path,
+                    'title' => pathinfo($video->getClientOriginalName(), PATHINFO_FILENAME),
                 ]);
                 if ($this->heroCarousel()->isHeroBanner($section, $page)) {
                     $this->heroCarousel()->appendToOrder($section, ['k' => 'video', 'id' => $media->id]);
@@ -132,9 +129,10 @@ class PageSectionsController extends Controller
         if (request()->hasFile('audios')) {
             foreach (request()->file('audios') as $audio) {
                 $path = $audio->store('page_sections/audios', 'public');
-                $section->media()->create([
+                $this->createSectionMedia($section, [
                     'type' => 'audio',
                     'file_path' => $path,
+                    'title' => pathinfo($audio->getClientOriginalName(), PATHINFO_FILENAME),
                 ]);
             }
         }
@@ -177,7 +175,34 @@ class PageSectionsController extends Controller
     // Edit section
     public function edit(Page $page, PageSection $section)
     {
-        $this->stripIrrelevantSectionInput($section);
+        try {
+            $this->stripIrrelevantSectionInput($section);
+
+            return $this->performSectionEdit($page, $section);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            if (request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'message' => 'Save failed on server: '.$e->getMessage(),
+                ], 500);
+            }
+
+            throw $e;
+        }
+    }
+
+    private function performSectionEdit(Page $page, PageSection $section)
+    {
+        if ($this->isFollowUpImageBatch()) {
+            return $this->appendImagesOnly($page, $section);
+        }
+
+        if ($this->isFollowUpVideoBatch()) {
+            return $this->appendVideosOnly($page, $section);
+        }
 
         $attributes = request()->validate(
             array_merge($this->sectionBaseValidationRules(), $this->marqueeValidationRules(), $this->videoUploadValidationRules()),
@@ -185,6 +210,7 @@ class PageSectionsController extends Controller
         );
 
         $this->assertUploadsNotBlockedByPhp(request());
+        $this->extendUploadRuntime(request());
 
         if ($page->slug === 'home' && ($attributes['section_key'] ?? '') === 'marquee_link') {
             throw ValidationException::withMessages([
@@ -215,7 +241,7 @@ class PageSectionsController extends Controller
             if ($section->image) {
                 Storage::disk('public')->delete($section->image);
             }
-            $section->image = CompressedUploadStorage::storeImage(request()->file('image'), 'page_sections', 'public');
+            $section->image = request()->file('image')->store('page_sections', 'public');
             if ($this->heroCarousel()->isHeroBanner($section, $page)) {
                 $this->heroCarousel()->appendToOrder($section, ['k' => 'main_image']);
             }
@@ -242,28 +268,18 @@ class PageSectionsController extends Controller
         */
 
         if (request()->hasFile('pdfs')) {
-
-            // delete only old PDFs
-            foreach ($section->media()->where('type', 'pdf')->get() as $media) {
-                if ($media->file_path) {
-                    Storage::disk('public')->delete($media->file_path);
-                }
-                $media->delete();
-            }
-
-            // add new PDFs
             foreach (request()->file('pdfs') as $pdf) {
                 $path = $pdf->store('page_sections/pdfs', 'public');
-                $section->media()->create([
+                $this->createSectionMedia($section, [
                     'type' => 'pdf',
                     'file_path' => $path,
-                    'title' => request('new_pdf_title'),
+                    'title' => request('new_pdf_title') ?: pathinfo($pdf->getClientOriginalName(), PATHINFO_FILENAME),
                     'description' => request('new_pdf_description'),
                 ]);
             }
         }
 
-        $this->syncPdfMeta($section);
+        $this->syncMediaMeta($section);
 
         /*
         |--------------------------------------------------------------------------
@@ -273,10 +289,11 @@ class PageSectionsController extends Controller
 
         if (request()->hasFile('videos')) {
             foreach (request()->file('videos') as $video) {
-                $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
-                $media = $section->media()->create([
+                $path = $video->store('page_sections/videos', 'public');
+                $media = $this->createSectionMedia($section, [
                     'type' => 'video',
                     'file_path' => $path,
+                    'title' => pathinfo($video->getClientOriginalName(), PATHINFO_FILENAME),
                 ]);
                 if ($this->heroCarousel()->isHeroBanner($section, $page)) {
                     $this->heroCarousel()->appendToOrder($section, ['k' => 'video', 'id' => $media->id]);
@@ -291,19 +308,12 @@ class PageSectionsController extends Controller
         */
 
         if (request()->hasFile('audios')) {
-
-            foreach ($section->media()->where('type', 'audio')->get() as $media) {
-                if ($media->file_path) {
-                    Storage::disk('public')->delete($media->file_path);
-                }
-                $media->delete();
-            }
-
             foreach (request()->file('audios') as $audio) {
                 $path = $audio->store('page_sections/audios', 'public');
-                $section->media()->create([
+                $this->createSectionMedia($section, [
                     'type' => 'audio',
                     'file_path' => $path,
+                    'title' => pathinfo($audio->getClientOriginalName(), PATHINFO_FILENAME),
                 ]);
             }
         }
@@ -315,15 +325,7 @@ class PageSectionsController extends Controller
         */
 
         if (request()->hasFile('images')) {
-            foreach (request()->file('images') as $file) {
-                $path = CompressedUploadStorage::storeImage($file, 'page_sections/images', 'public');
-                $image = $section->images()->create([
-                    'image' => $path,
-                ]);
-                if ($this->heroCarousel()->isHeroBanner($section, $page)) {
-                    $this->heroCarousel()->appendToOrder($section, ['k' => 'image', 'id' => $image->id]);
-                }
-            }
+            $this->storeSectionImages(request()->file('images'), $section, $page);
         }
 
         $this->addYoutubeLinksFromRequest($section, $page);
@@ -849,20 +851,49 @@ class PageSectionsController extends Controller
         return $message;
     }
 
-    private function syncPdfMeta(PageSection $section): void
+    private function createSectionMedia(PageSection $section, array $attributes): PageSectionMedia
     {
-        $meta = request('pdf_meta', []);
+        if (! isset($attributes['sort_order'])) {
+            $attributes['sort_order'] = $this->nextMediaSortOrder($section);
+        }
+
+        return $section->media()->create($attributes);
+    }
+
+    private function nextMediaSortOrder(PageSection $section): int
+    {
+        return ((int) $section->media()->max('sort_order')) + 1;
+    }
+
+    private function syncMediaMeta(PageSection $section): void
+    {
+        $this->applyMediaMeta($section, 'pdf', request('pdf_meta', []));
+        $this->applyMediaMeta($section, 'video', request('video_meta', []));
+        $this->applyMediaMeta($section, 'audio', request('audio_meta', []));
+    }
+
+    private function applyMediaMeta(PageSection $section, string $type, mixed $meta): void
+    {
         if (! is_array($meta) || $meta === []) {
             return;
         }
 
         foreach ($meta as $mediaId => $data) {
-            $media = $section->media()->where('type', 'pdf')->where('id', $mediaId)->first();
+            $media = $section->media()->where('type', $type)->where('id', $mediaId)->first();
             if (! $media || ! is_array($data)) {
                 continue;
             }
-            $media->title = isset($data['title']) ? (trim((string) $data['title']) ?: null) : $media->title;
-            $media->description = isset($data['description']) ? (trim((string) $data['description']) ?: null) : $media->description;
+
+            if (array_key_exists('title', $data)) {
+                $media->title = trim((string) $data['title']) ?: null;
+            }
+            if (array_key_exists('description', $data)) {
+                $media->description = trim((string) $data['description']) ?: null;
+            }
+            if (array_key_exists('sort_order', $data) && $data['sort_order'] !== null && $data['sort_order'] !== '') {
+                $media->sort_order = max(0, (int) $data['sort_order']);
+            }
+
             $media->save();
         }
     }
@@ -904,7 +935,7 @@ class PageSectionsController extends Controller
             if ($exists) {
                 continue;
             }
-            $media = $section->media()->create([
+            $media = $this->createSectionMedia($section, [
                 'type' => 'youtube',
                 'youtube_url' => $link,
             ]);
@@ -934,7 +965,7 @@ class PageSectionsController extends Controller
             if ($exists) {
                 continue;
             }
-            $section->media()->create([
+            $this->createSectionMedia($section, [
                 'type' => 'youtube',
                 'youtube_url' => $url,
             ]);
@@ -991,6 +1022,99 @@ class PageSectionsController extends Controller
         }
 
         return redirect($redirectUrl)->with('message', $message);
+    }
+
+    private function isFollowUpImageBatch(): bool
+    {
+        return (int) request()->header('X-Image-Batch-Index', 0) > 0;
+    }
+
+    private function isFollowUpVideoBatch(): bool
+    {
+        return (int) request()->header('X-Video-Batch-Index', 0) > 0;
+    }
+
+    private function appendVideosOnly(Page $page, PageSection $section)
+    {
+        $this->assertUploadsNotBlockedByPhp(request());
+        $this->extendUploadRuntime(request());
+
+        $maxKb = $this->maxVideoKilobytes();
+        request()->validate([
+            'videos' => 'required|array|min:1',
+            'videos.*' => "required|file|mimes:mp4,mov,avi|max:{$maxKb}",
+        ], $this->videoUploadValidationMessages());
+
+        $added = 0;
+        foreach (request()->file('videos', []) as $video) {
+            if (! $video instanceof UploadedFile || ! $video->isValid()) {
+                continue;
+            }
+
+            $path = CompressedUploadStorage::storeVideo($video, 'page_sections/videos', 'public');
+            $media = $this->createSectionMedia($section, [
+                'type' => 'video',
+                'file_path' => $path,
+                'title' => pathinfo($video->getClientOriginalName(), PATHINFO_FILENAME),
+            ]);
+            if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                $this->heroCarousel()->appendToOrder($section, ['k' => 'video', 'id' => $media->id]);
+            }
+            $added++;
+        }
+
+        return $this->sectionSaveRedirect($page, $added.' video(s) uploaded');
+    }
+
+    private function appendImagesOnly(Page $page, PageSection $section)
+    {
+        $this->assertUploadsNotBlockedByPhp(request());
+        $this->extendUploadRuntime(request());
+
+        $maxKb = UploadLimits::validationMaxKilobytes();
+        request()->validate([
+            'images' => 'required|array|min:1',
+            'images.*' => "required|file|mimes:jpeg,jpg,png,gif,webp|max:{$maxKb}",
+        ]);
+
+        $files = request()->file('images', []);
+        $added = $this->storeSectionImages($files, $section, $page);
+
+        return $this->sectionSaveRedirect($page, $added.' image(s) uploaded');
+    }
+
+    /** @param  array<int, UploadedFile>  $files */
+    private function storeSectionImages(array $files, PageSection $section, Page $page): int
+    {
+        $added = 0;
+
+        foreach ($files as $file) {
+            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+                continue;
+            }
+
+            $path = $file->store('page_sections/images', 'public');
+            $image = $section->images()->create([
+                'image' => $path,
+            ]);
+            if ($this->heroCarousel()->isHeroBanner($section, $page)) {
+                $this->heroCarousel()->appendToOrder($section, ['k' => 'image', 'id' => $image->id]);
+            }
+            $added++;
+        }
+
+        return $added;
+    }
+
+    private function extendUploadRuntime(Request $request): void
+    {
+        if ($request->allFiles() === []) {
+            return;
+        }
+
+        @set_time_limit(0);
+        @ini_set('max_input_time', '3600');
+        @ini_set('memory_limit', '2048M');
     }
 
     private function assertUploadsNotBlockedByPhp(Request $request): void
@@ -1101,12 +1225,21 @@ class PageSectionsController extends Controller
             'section_key' => 'required',
             'title' => 'nullable',
             'description' => 'nullable',
-            'image' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:51200',
-            'images.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:51200',
-            'pdfs.*' => 'nullable|file|mimes:pdf',
+            'image' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:'.UploadLimits::validationMaxKilobytes(),
+            'images.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp|max:'.UploadLimits::validationMaxKilobytes(),
+            'pdfs.*' => 'nullable|file|mimes:pdf,ppt,pptx|max:'.UploadLimits::validationMaxKilobytes(),
             'pdf_meta' => 'nullable|array',
             'pdf_meta.*.title' => 'nullable|string|max:255',
             'pdf_meta.*.description' => 'nullable|string|max:2000',
+            'pdf_meta.*.sort_order' => 'nullable|integer|min:0',
+            'video_meta' => 'nullable|array',
+            'video_meta.*.title' => 'nullable|string|max:255',
+            'video_meta.*.description' => 'nullable|string|max:2000',
+            'video_meta.*.sort_order' => 'nullable|integer|min:0',
+            'audio_meta' => 'nullable|array',
+            'audio_meta.*.title' => 'nullable|string|max:255',
+            'audio_meta.*.description' => 'nullable|string|max:2000',
+            'audio_meta.*.sort_order' => 'nullable|integer|min:0',
             'new_pdf_title' => 'nullable|string|max:255',
             'new_pdf_description' => 'nullable|string|max:2000',
             'audios.*' => 'nullable|file|mimes:mp3,wav,ogg,m4a',
@@ -1147,7 +1280,7 @@ class PageSectionsController extends Controller
             'marquee_links.*.id' => 'nullable|integer',
             'marquee_links.*.title' => 'nullable|string|max:255',
             'marquee_links.*.url' => 'nullable|string|max:2048',
-            'marquee_links.*.file' => 'nullable|file|mimes:pdf|max:51200',
+            'marquee_links.*.file' => 'nullable|file|mimes:pdf,ppt,pptx|max:'.UploadLimits::validationMaxKilobytes(),
             'marquee_links.*.sort_order' => 'nullable|integer',
         ];
     }

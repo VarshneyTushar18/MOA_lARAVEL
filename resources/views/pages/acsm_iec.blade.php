@@ -74,9 +74,43 @@
 @endsection
 
 @push('scripts')
+@include('partials.acsm-gallery-scripts')
 <script>
 if (typeof GLightbox === 'function') {
     GLightbox({ selector: '.glightbox' });
 }
+
+document.querySelectorAll('.tb-pledge-year-tabs').forEach(function (block) {
+    initAcsmCarouselsIn(block.querySelector('.tab-pane.active'));
+});
+
+document.querySelectorAll('.tb-pledge-year-tabs__nav [data-bs-toggle="tab"]').forEach(function (tabBtn) {
+    tabBtn.addEventListener('shown.bs.tab', function (event) {
+        var target = document.querySelector(event.target.getAttribute('data-bs-target'));
+        pauseAcsmVideos(target);
+        initAcsmCarouselsIn(target);
+        window.requestAnimationFrame(function () {
+            if (!target) {
+                return;
+            }
+            target.querySelectorAll('.acsm-image-swiper').forEach(function (swiperEl) {
+                if (swiperEl.swiper) {
+                    swiperEl.swiper.update();
+                }
+            });
+        });
+    });
+});
+
+document.querySelectorAll('#acsmIecAccordion .accordion-collapse').forEach(function (panel) {
+    panel.addEventListener('shown.bs.collapse', function () {
+        pauseAcsmVideos(panel);
+        initAcsmCarouselsIn(panel);
+    });
+});
+
+document.querySelectorAll('#acsmIecAccordion .accordion-collapse.show').forEach(function (panel) {
+    initAcsmCarouselsIn(panel);
+});
 </script>
 @endpush

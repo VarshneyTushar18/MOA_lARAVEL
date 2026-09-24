@@ -11,7 +11,8 @@ class PageSectionImage extends Model
 
     protected $fillable = [
         'page_section_id',
-        'image'
+        'image',
+        'sort_order',
     ];
 
     public function section() {

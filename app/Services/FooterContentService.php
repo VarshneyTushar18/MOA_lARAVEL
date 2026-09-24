@@ -71,6 +71,7 @@ class FooterContentService
                 'address' => filled($contact?->description) ? $contact->description : $defaults['contact']['address'],
                 'phone' => $this->contactLine($contact, 'footer_contact_phone', $defaults['contact']['phone']),
                 'email' => $this->contactLine($contact, 'footer_contact_email', $defaults['contact']['email']),
+                'map_embed' => $this->contactLine($contact, 'footer_contact_map', $defaults['contact']['map_embed']),
             ],
             'bottom' => [
                 'copyright' => filled($bottom?->description) ? $bottom->description : $defaults['bottom']['copyright'],
@@ -96,6 +97,8 @@ class FooterContentService
 
         $phone = $contact->subsections->firstWhere('section_key', 'footer_contact_phone');
         $email = $contact->subsections->firstWhere('section_key', 'footer_contact_email');
+        $map = $contact->subsections->firstWhere('section_key', 'footer_contact_map');
+        $defaults = $this->defaultFrontendData();
 
         return [
             'page' => $page,
@@ -110,6 +113,7 @@ class FooterContentService
             'address' => old('address', $contact->description),
             'phone' => old('phone', $phone?->description),
             'email' => old('email', $email?->description),
+            'map_embed' => old('map_embed', $map?->description ?? $defaults['contact']['map_embed']),
             'copyright' => old('copyright', $bottom->description),
             'legal_links' => old('legal_links', $this->linksForAdmin($bottom)),
         ];
@@ -141,6 +145,7 @@ class FooterContentService
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:255',
             'email' => 'nullable|string|max:255',
+            'map_embed' => 'nullable|string',
             'copyright' => 'nullable|string|max:500',
             'legal_links' => 'nullable|array',
             'legal_links.*.id' => 'nullable|integer',
@@ -180,6 +185,7 @@ class FooterContentService
         $contact->save();
         $this->syncContactLine($contact, 'footer_contact_phone', $request->input('phone'));
         $this->syncContactLine($contact, 'footer_contact_email', $request->input('email'));
+        $this->syncContactLine($contact, 'footer_contact_map', $request->input('map_embed'));
 
         $bottom = $sections->get('footer_bottom') ?? $this->makeSection($page, 'footer_bottom');
         $bottom->description = $request->input('copyright');
@@ -224,9 +230,10 @@ class FooterContentService
             ],
             'contact' => [
                 'title' => 'Contact Information',
-                'address' => "All India Institute of Ayurveda (AIIA) Mathura Road, Gautam Puri\nSarita Vihar, Delhi - 110076",
+                'address' => "All India Institute of Ayurveda, Delhi\nMathura Rd, Gautampuri Awas, Sarita Vihar\nNew Delhi, Delhi 110076",
                 'phone' => 'Phone No : 011-26950401/402',
                 'email' => 'Email Id : contact-us@aiia.gov.in',
+                'map_embed' => '<iframe src="https://www.google.com/maps?q=All+India+Institute+of+Ayurveda,+Delhi,+Mathura+Rd,+Gautampuri+Awas,+Sarita+Vihar,+New+Delhi,+Delhi+110076&amp;hl=en&amp;z=16&amp;output=embed" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>',
             ],
             'bottom' => [
                 'copyright' => '© Copyright 2026 Ministry of Ayush. All Rights Reserved',
@@ -262,6 +269,7 @@ class FooterContentService
         $contact->save();
         $this->syncContactLine($contact, 'footer_contact_phone', $defaults['contact']['phone']);
         $this->syncContactLine($contact, 'footer_contact_email', $defaults['contact']['email']);
+        $this->syncContactLine($contact, 'footer_contact_map', $defaults['contact']['map_embed']);
 
         $bottom = $this->makeSection($page, 'footer_bottom');
         $bottom->description = $defaults['bottom']['copyright'];
@@ -523,7 +531,12 @@ class FooterContentService
             $line->section_key = $sectionKey;
             $line->parent_id = $contact->id;
             $line->type = 'single';
-            $line->sort_order = $sectionKey === 'footer_contact_phone' ? 1 : 2;
+            $line->sort_order = match ($sectionKey) {
+                'footer_contact_phone' => 1,
+                'footer_contact_email' => 2,
+                'footer_contact_map' => 3,
+                default => 0,
+            };
         }
 
         $line->description = $value;

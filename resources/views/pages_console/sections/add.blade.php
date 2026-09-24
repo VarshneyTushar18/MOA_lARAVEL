@@ -3,7 +3,11 @@
 @section('content')
 
 @php
-    $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
+    $maxVideoMb = (int) floor(\App\Support\UploadLimits::effectiveMaxBytes() / (1024 * 1024));
+    $configuredVideoMb = (int) config('upload_compression.max_video_mb', 0);
+    if ($configuredVideoMb > 0) {
+        $maxVideoMb = min($maxVideoMb, $configuredVideoMb);
+    }
     $maxHighlightSec = (int) config('upload_compression.highlight_video_max_seconds', 10);
     $highlightDurationLabel = $maxHighlightSec > 0 ? "max {$maxHighlightSec} sec, " : '';
 @endphp
@@ -114,7 +118,7 @@
                         </div>
                         <div class="w3-margin-bottom">
                             <label>Upload PDF (optional)</label>
-                            <input type="file" class="w3-input" name="marquee_links[{{ $idx }}][file]" accept="application/pdf,.pdf">
+                            <input type="file" class="w3-input" name="marquee_links[{{ $idx }}][file]" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx">
                         </div>
                         <div class="w3-margin-bottom">
                             <label>Sort Order</label>
@@ -142,9 +146,9 @@
             </div>
 
             <div class="w3-margin-bottom">
-                <label for="pdf">Upload PDF (optional)</label>
-                <input type="file" class="form-control" name="pdfs[]" multiple>
-                <label class="w3-small w3-margin-top">PDF title (optional)</label>
+                <label for="pdf">Upload PDF / PPT (optional)</label>
+                <input type="file" class="form-control" name="pdfs[]" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx" multiple>
+                <label class="w3-small w3-margin-top">Document title (optional)</label>
                 <input type="text" class="form-control mb-2" name="new_pdf_title" value="{{ old('new_pdf_title') }}" placeholder="Short title">
                 <label class="w3-small">Short description (optional)</label>
                 <textarea class="form-control" name="new_pdf_description" rows="3" placeholder="Short description shown on the website">{{ old('new_pdf_description') }}</textarea>
@@ -285,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<input type="hidden" name="marquee_links[' + index + '][id]" value="">' +
                 '<div class="w3-margin-bottom"><label>Link Label</label><input type="text" class="w3-input" name="marquee_links[' + index + '][title]"></div>' +
                 '<div class="w3-margin-bottom"><label>Website URL (optional if PDF uploaded)</label><input type="url" class="w3-input" name="marquee_links[' + index + '][url]" placeholder="https://..."></div>' +
-                '<div class="w3-margin-bottom"><label>Upload PDF (optional)</label><input type="file" class="w3-input" name="marquee_links[' + index + '][file]" accept="application/pdf,.pdf"></div>' +
+                '<div class="w3-margin-bottom"><label>Upload PDF / PPT (optional)</label><input type="file" class="w3-input" name="marquee_links[' + index + '][file]" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"></div>' +
                 '<div class="w3-margin-bottom"><label>Sort Order</label><input type="number" class="w3-input" name="marquee_links[' + index + '][sort_order]" value="0"></div>' +
                 '<button type="button" class="w3-button w3-red remove-marquee-link">Remove</button>' +
             '</div>';

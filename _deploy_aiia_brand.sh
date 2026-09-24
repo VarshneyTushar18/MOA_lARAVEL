@@ -11,4 +11,5 @@ cp "$UP/aiia-header-brand.png" "$APP/public/assets/images/aiia-header-brand.png"
 cp "$UP/aiia-header-brand.png" "$PUB/assets/images/aiia-header-brand.png"
 cd "$APP"
 php82 artisan view:clear
+php82 artisan view:cache
 echo DONE

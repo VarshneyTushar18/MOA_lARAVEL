@@ -3,7 +3,11 @@
 @section('content')
 
 @php
-    $maxVideoMb = (int) config('upload_compression.max_video_mb', 200);
+    $maxVideoMb = (int) floor(\App\Support\UploadLimits::effectiveMaxBytes() / (1024 * 1024));
+    $configuredVideoMb = (int) config('upload_compression.max_video_mb', 0);
+    if ($configuredVideoMb > 0) {
+        $maxVideoMb = min($maxVideoMb, $configuredVideoMb);
+    }
     $maxHighlightSec = (int) config('upload_compression.highlight_video_max_seconds', 10);
     $highlightDurationLabel = $maxHighlightSec > 0 ? "max {$maxHighlightSec} sec, " : '';
 @endphp
@@ -136,7 +140,7 @@
                                     <a href="{{ asset('storage/'.$marqueeLink['existing_pdf']) }}" target="_blank">View current PDF</a>
                                 </div>
                             @endif
-                            <input type="file" class="w3-input" name="marquee_links[{{ $idx }}][file]" accept="application/pdf,.pdf">
+                            <input type="file" class="w3-input" name="marquee_links[{{ $idx }}][file]" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx">
                         </div>
                         <div class="w3-margin-bottom">
                             <label>Sort Order</label>
@@ -190,7 +194,8 @@
             {{-- Multiple Images --}}
             <div class="w3-margin-bottom">
                 <label for="images">Additional Images (optional, multiple allowed):</label>
-                <input type="file" class="form-control" name="images[]" id="images" multiple>
+                <input type="file" class="form-control" name="images[]" id="images" multiple accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp">
+                <p class="w3-small text-muted mb-0">You can select 500+ images at once. Only image files go here (not PDF/video). Uploads are sent in automatic batches.</p>
 
                 @if($section->images->count() > 0)
                     <div class="w3-margin-top">
@@ -205,15 +210,17 @@
                 @endif
             </div>
 
-            {{-- PDF --}}
+            {{-- PDF / PPT --}}
             <div class="w3-margin-bottom">
-                <label for="pdf">PDF (optional):</label>
+                <label for="pdf">PDF / PPT (optional):</label>
                 @forelse($section->media->where('type','pdf') as $pdf)
                     <div class="border rounded p-3 mb-3">
                         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
                             <a href="{{ asset('storage/'.$pdf->file_path) }}" target="_blank">{{ basename($pdf->file_path) ?: 'View PDF' }}</a>
-                            <a href="/console/pages/sections/media/delete/{{ $pdf->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this PDF?')">Remove</a>
+                            <a href="/console/pages/sections/media/delete/{{ $pdf->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this file?')">Remove</a>
                         </div>
+                        <label class="w3-small">Sort order</label>
+                        <input type="number" class="form-control mb-2" name="pdf_meta[{{ $pdf->id }}][sort_order]" value="{{ old('pdf_meta.'.$pdf->id.'.sort_order', $pdf->sort_order ?? 0) }}" min="0">
                         <label class="w3-small">PDF title</label>
                         <input type="text" class="form-control mb-2" name="pdf_meta[{{ $pdf->id }}][title]" value="{{ old('pdf_meta.'.$pdf->id.'.title', $pdf->title) }}" placeholder="Short title">
                         <label class="w3-small">Short description</label>
@@ -224,22 +231,31 @@
                         <div class="mb-2"><a href="{{ asset('storage/'.$section->pdf) }}" target="_blank">View PDF</a></div>
                     @endif
                 @endforelse
-                <input type="file" class="form-control" name="pdfs[]" id="pdf" accept="application/pdf,.pdf" multiple>
-                <label class="w3-small w3-margin-top">New PDF title (optional)</label>
+                <input type="file" class="form-control" name="pdfs[]" id="pdf" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx" multiple>
+                <label class="w3-small w3-margin-top">New document title (optional)</label>
                 <input type="text" class="form-control mb-2" name="new_pdf_title" value="{{ old('new_pdf_title') }}" placeholder="Short title">
-                <label class="w3-small">New PDF short description (optional)</label>
+                <label class="w3-small">New document short description (optional)</label>
                 <textarea class="form-control" name="new_pdf_description" rows="3" placeholder="Short description shown on the website">{{ old('new_pdf_description') }}</textarea>
-                <p class="w3-small">Click Remove to delete a PDF. Uploading a new PDF replaces the old ones.</p>
+                <p class="w3-small">New PDF/PPT files are <strong>added</strong> to the list — existing ones stay unless you click Remove. Use sort order to control display sequence (lower numbers appear first).</p>
             </div>
 
             {{-- Videos --}}
             <div class="w3-margin-bottom">
                 <label for="videos">Upload Videos (MP4, MOV, AVI — max {{ $maxVideoMb }} MB each)</label>
+                <p class="w3-small w3-text-grey mb-2">Upload <strong>one large video at a time</strong> (max ~12 GB per file). Larger files may need a direct server upload instead of the browser form.</p>
                 @foreach($section->media->where('type', 'video') as $media)
                     @if($media->file_path)
-                        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                            <a href="{{ asset('storage/'.$media->file_path) }}" target="_blank">{{ basename($media->file_path) }}</a>
-                            <a href="/console/pages/sections/media/delete/{{ $media->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this video?')">Remove</a>
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                                <a href="{{ asset('storage/'.$media->file_path) }}" target="_blank">{{ $media->title ?: basename($media->file_path) }}</a>
+                                <a href="/console/pages/sections/media/delete/{{ $media->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this video?')">Remove</a>
+                            </div>
+                            <label class="w3-small">Sort order</label>
+                            <input type="number" class="form-control mb-2" name="video_meta[{{ $media->id }}][sort_order]" value="{{ old('video_meta.'.$media->id.'.sort_order', $media->sort_order ?? 0) }}" min="0">
+                            <label class="w3-small">Video title (optional)</label>
+                            <input type="text" class="form-control mb-2" name="video_meta[{{ $media->id }}][title]" value="{{ old('video_meta.'.$media->id.'.title', $media->title) }}" placeholder="Title shown on website">
+                            <label class="w3-small">Short description (optional)</label>
+                            <textarea class="form-control" name="video_meta[{{ $media->id }}][description]" rows="2" placeholder="Short description shown on the website">{{ old('video_meta.'.$media->id.'.description', $media->description) }}</textarea>
                         </div>
                     @endif
                 @endforeach
@@ -259,11 +275,17 @@
             <div class="w3-margin-bottom">
                 <label>Upload Audio Files</label>
                 @foreach($section->media->where('type', 'audio') as $audio)
-                    <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                        <audio class="console-audio" controls>
-                            <source src="{{ asset('storage/'.$audio->file_path) }}">
-                        </audio>
-                        <a href="/console/pages/sections/media/delete/{{ $audio->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this audio?')">Remove</a>
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                            <audio class="console-audio" controls>
+                                <source src="{{ asset('storage/'.$audio->file_path) }}">
+                            </audio>
+                            <a href="/console/pages/sections/media/delete/{{ $audio->id }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this audio?')">Remove</a>
+                        </div>
+                        <label class="w3-small">Sort order</label>
+                        <input type="number" class="form-control mb-2" name="audio_meta[{{ $audio->id }}][sort_order]" value="{{ old('audio_meta.'.$audio->id.'.sort_order', $audio->sort_order ?? 0) }}" min="0">
+                        <label class="w3-small">Title (optional)</label>
+                        <input type="text" class="form-control" name="audio_meta[{{ $audio->id }}][title]" value="{{ old('audio_meta.'.$audio->id.'.title', $audio->title) }}" placeholder="Title shown on website">
                     </div>
                 @endforeach
                 <input type="file" class="form-control" name="audios[]" multiple>
@@ -383,7 +405,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<input type="hidden" name="marquee_links[' + index + '][id]" value="">' +
                 '<div class="w3-margin-bottom"><label>Link Label</label><input type="text" class="w3-input" name="marquee_links[' + index + '][title]"></div>' +
                 '<div class="w3-margin-bottom"><label>Website URL (optional if PDF uploaded)</label><input type="url" class="w3-input" name="marquee_links[' + index + '][url]" placeholder="https://..."></div>' +
-                '<div class="w3-margin-bottom"><label>Upload PDF (optional)</label><input type="file" class="w3-input" name="marquee_links[' + index + '][file]" accept="application/pdf,.pdf"></div>' +
+                '<div class="w3-margin-bottom"><label>Upload PDF / PPT (optional)</label><input type="file" class="w3-input" name="marquee_links[' + index + '][file]" accept="application/pdf,.pdf,application/vnd.ms-powerpoint,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"></div>' +
                 '<div class="w3-margin-bottom"><label>Sort Order</label><input type="number" class="w3-input" name="marquee_links[' + index + '][sort_order]" value="0"></div>' +
                 '<button type="button" class="w3-button w3-red remove-marquee-link">Remove</button>' +
             '</div>';

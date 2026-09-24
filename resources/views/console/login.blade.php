@@ -47,11 +47,16 @@
                 @enderror
             </div>
 
+            @if(session('message'))
+                <div class="alert alert-success">{{ session('message') }}</div>
+            @endif
+
             <!-- Button -->
-            <div class="d-grid">
+            <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary">
                     Log In
                 </button>
+                <a href="{{ route('console.password.request') }}" class="btn btn-link btn-sm text-decoration-none">Forgot password?</a>
             </div>
 
         </form>

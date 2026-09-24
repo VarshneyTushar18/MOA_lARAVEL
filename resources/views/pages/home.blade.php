@@ -360,10 +360,10 @@
                                             <span class="aiia-gallery-panel__album-thumb">
                                                 <img src="{{ asset('storage/'.$album['cover']) }}"
                                                      alt="{{ $album['title'] }}"
-                                                     loading="lazy"
+                                                     @if($loop->index < 3) loading="eager" fetchpriority="high" @else loading="lazy" @endif
                                                      decoding="async">
                                             </span>
-                                            <span class="aiia-gallery-panel__album-title">{{ \Illuminate\Support\Str::limit($album['title'], 40) }}</span>
+                                            <span class="aiia-gallery-panel__album-title">{{ $album['title'] }}</span>
                                         </a>
                                     @endforeach
                                 </div>
@@ -411,13 +411,13 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    <h2 class="text-center pb-5">Personals Roles and Responsibility</h2>
+                    <h2 class="text-center">Personals Roles and Responsibility</h2>
                 </div>
             </div>
-            <div class="row roles-row g-3 g-lg-4">
+            <div class="row roles-row g-2 g-lg-3">
                 @foreach($roles as $role)
-                    <div class="col-12 col-md-6 col-xl-4">
-                        <div class="profile-card d-flex gap-3">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="profile-card d-flex">
                             @if($role->image)
                                 <div class="image">
                                     <img src="{{ asset('storage/'.$role->image) }}" alt="{{ $role->title }}" loading="lazy" decoding="async">

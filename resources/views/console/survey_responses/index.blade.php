@@ -69,7 +69,7 @@
 
     <div class="card p-3">
         <h4>Survey Responses</h4>
-        <form method="GET" action="{{ route('console.survey_responses.index') }}" class="row g-2 mb-3 align-items-end">
+        <form method="GET" action="{{ route('console.survey_responses.index') }}" class="row g-2 mb-3 align-items-end console-date-filter">
             <div class="col-12 col-md-3">
                 <input type="text" name="q" class="form-control" value="{{ request('q') }}" placeholder="Search name/contact/registration">
             </div>
@@ -101,20 +101,22 @@
             </div>
         </form>
 
-        <form method="POST" action="{{ route('console.survey_responses.export_selected') }}" id="selectedExportForm">
-            @csrf
-            <div class="d-flex justify-content-end mb-2">
-                <button type="submit" class="btn btn-success btn-sm" id="exportSelectedBtn" disabled>
-                    Export
-                </button>
-            </div>
+        <div data-bulk-root>
+            @include('partials.console_bulk_toolbar', [
+                'formId' => 'selectedExportForm',
+                'exportRoute' => route('console.survey_responses.export_selected'),
+                'deleteRoute' => route('console.survey_responses.bulk_destroy'),
+                'exportAllRoute' => route('console.survey_responses.export', request()->query()),
+            ])
 
+            <form method="POST" action="{{ route('console.survey_responses.export_selected') }}" id="selectedExportForm" data-bulk-form>
+            @csrf
             <div class="table-responsive">
                 <table class="table table-bordered table-striped mb-0 survey-table">
                 <thead>
                     <tr>
                         <th class="cell-check">
-                            <input type="checkbox" id="selectAllRows">
+                            <input type="checkbox" data-select-all aria-label="Select all rows">
                         </th>
                         <th>ID</th>
                         <th>Name</th>
@@ -145,7 +147,7 @@
                         @endphp
                         <tr>
                             <td class="cell-check">
-                                <input type="checkbox" class="row-selector" name="selected_ids[]" value="{{ $response->id }}">
+                                <input type="checkbox" data-row-selector name="selected_ids[]" value="{{ $response->id }}">
                             </td>
                             <td>{{ $response->id }}</td>
                             <td>{{ $response->name }}</td>
@@ -154,11 +156,11 @@
                             <td>{{ $typeOfCase ?: '-' }}</td>
                             <td>{{ $response->created_at->format('d-m-Y h:i A') }}</td>
                             <td class="cell-action">
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <a href="{{ route('console.survey_responses.show', $response) }}" class="btn btn-sm btn-outline-secondary" title="View">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                </div>
+                                @include('partials.console_record_actions', [
+                                    'showRoute' => route('console.survey_responses.show', $response),
+                                    'editRoute' => route('console.survey_responses.edit', $response),
+                                    'deleteRoute' => route('console.survey_responses.destroy', $response),
+                                ])
                             </td>
                         </tr>
                     @empty
@@ -169,68 +171,11 @@
                 </tbody>
                 </table>
             </div>
-        </form>
+            </form>
+        </div>
 
         {{ $responses->appends(request()->query())->links() }}
     </div>
 </div>
-
-<script>
-    (function () {
-        const selectAll = document.getElementById('selectAllRows');
-        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
-        const exportForm = document.getElementById('selectedExportForm');
-
-        function getRowSelectors() {
-            return Array.from(document.querySelectorAll('.row-selector'));
-        }
-
-        function updateState() {
-            const rows = getRowSelectors();
-            const checkedCount = rows.filter((cb) => cb.checked).length;
-
-            exportSelectedBtn.disabled = checkedCount === 0;
-
-            if (rows.length === 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-                return;
-            }
-
-            if (checkedCount === rows.length) {
-                selectAll.checked = true;
-                selectAll.indeterminate = false;
-            } else if (checkedCount === 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            } else {
-                selectAll.checked = false;
-                selectAll.indeterminate = true;
-            }
-        }
-
-        selectAll?.addEventListener('change', function () {
-            getRowSelectors().forEach((cb) => {
-                cb.checked = this.checked;
-            });
-            updateState();
-        });
-
-        document.addEventListener('change', function (e) {
-            if (e.target.classList.contains('row-selector')) {
-                updateState();
-            }
-        });
-
-        exportForm?.addEventListener('submit', function (e) {
-            const selectedCount = getRowSelectors().filter((cb) => cb.checked).length;
-            if (selectedCount === 0) {
-                e.preventDefault();
-            }
-        });
-
-        updateState();
-    })();
-</script>
 
 @endsection

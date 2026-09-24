@@ -23,6 +23,13 @@
 <section class="ntpcsection">
     <div class="container">
 
+        <div class="d-flex justify-content-end mb-3">
+            <form method="POST" action="{{ route('patient_corner.logout') }}" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Sign Out</button>
+            </form>
+        </div>
+
         @if($errors->any())
             <div class="alert alert-danger">
                 <ul class="mb-0">
@@ -173,87 +180,86 @@
 
 
                 {{-- Manual Entry Form --}}
-                <form action="{{ route('patients.store') }}" method="POST">
-                    @csrf
-                    <div class="row">
+                <div class="card p-4 mt-3">
+                    <h4 class="mb-3">OPD Patient Form</h4>
 
-                        <div class="col-md-4 mb-3">
-                            <label>Date</label>
-                            <input type="date" name="date" class="form-control"
-                                value="{{ old('date', date('Y-m-d')) }}">
+                    <form action="{{ route('patients.store') }}" method="POST">
+                        @csrf
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle opd-patient-form-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:70px;">S.No</th>
+                                        <th style="width:38%;">Field</th>
+                                        <th>Entry</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center fw-semibold">1</td>
+                                        <td>S.No</td>
+                                        <td class="text-muted small">Assigned automatically on save</td>
+                                    </tr>
+
+                                    @foreach(\App\Support\OpdPatientFields::definitions() as $field)
+                                        <tr>
+                                            <td class="text-center fw-semibold">{{ $field['no'] }}</td>
+                                            <td>
+                                                {{ $field['label'] }}
+                                                @if(!empty($field['required']))
+                                                    <span class="text-danger">*</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $key = $field['key'];
+                                                    $value = old($key, $key === 'date' ? date('Y-m-d') : '');
+                                                @endphp
+
+                                                @if($field['type'] === 'date')
+                                                    <input type="date" name="{{ $key }}" class="form-control" value="{{ $value }}">
+                                                @elseif($field['type'] === 'number')
+                                                    <input type="number" name="{{ $key }}" class="form-control" value="{{ $value }}" min="0" max="120" step="1" inputmode="numeric">
+                                                @elseif($field['type'] === 'select')
+                                                    <select name="{{ $key }}" class="form-control">
+                                                        <option value="">Select</option>
+                                                        <option value="Male" @selected($value === 'Male')>Male</option>
+                                                        <option value="Female" @selected($value === 'Female')>Female</option>
+                                                        <option value="Other" @selected($value === 'Other')>Other</option>
+                                                    </select>
+                                                @elseif($field['type'] === 'textarea')
+                                                    <textarea name="{{ $key }}" class="form-control" rows="{{ $field['rows'] ?? 2 }}">{{ $value }}</textarea>
+                                                @elseif($key === 'adhaar_no')
+                                                    <input type="text" name="{{ $key }}" class="form-control" value="{{ $value }}" maxlength="255" required autocomplete="off">
+                                                @elseif($key === 'name')
+                                                    <input type="text" name="{{ $key }}" class="form-control" value="{{ $value }}" required minlength="2" maxlength="255" autocomplete="name">
+                                                @elseif($key === 'uhid_no')
+                                                    <input type="text" name="{{ $key }}" class="form-control" value="{{ $value }}" required>
+                                                @else
+                                                    <input type="text" name="{{ $key }}" class="form-control" value="{{ $value }}">
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div class="col-md-4 mb-3">
-                            <label>UHID No.</label>
-                            <input type="text" name="uhid_no" class="form-control" value="{{ old('uhid_no') }}">
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">File No. <span class="text-muted small">(optional — for download lookup)</span></label>
+                                <input type="text" name="file_no" class="form-control" value="{{ old('file_no') }}">
+                            </div>
                         </div>
 
-                        <div class="col-md-4 mb-3">
-                            <label>File No.</label>
-                            <input type="text" name="file_no" class="form-control" value="{{ old('file_no') }}">
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label>Adhaar No.</label>
-                            <input type="text" name="adhaar_no" class="form-control"
-                                value="{{ old('adhaar_no') }}" maxlength="14" pattern="\d{4}[\s\-]?\d{4}[\s\-]?\d{4}|\d{12}"
-                                title="Aadhaar number must be exactly 12 digits (optional spaces or hyphens between groups)" required inputmode="numeric" autocomplete="off">
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label>Name</label>
-                            <input type="text" name="name" class="form-control" value="{{ old('name') }}" required minlength="2" maxlength="255" autocomplete="name">
-                        </div>
-
-                        <div class="col-md-2 mb-3">
-                            <label>Age</label>
-                            <input type="number" name="age" class="form-control" value="{{ old('age') }}" min="0" max="120" step="1" inputmode="numeric">
-                        </div>
-
-                        <div class="col-md-2 mb-3">
-                            <label>Sex</label>
-                            <select name="sex" class="form-control">
-                                <option value="">Select</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label>Visit / Follow up</label>
-                            <input type="text" name="visit_follow_up" class="form-control">
-                        </div>
-
-                        <div class="col-md-12 mb-3">
-                            <label>Address</label>
-                            <textarea name="address" class="form-control"></textarea>
-                        </div>
-
-                        @php
-                            $fields = [
-                                'diagnosis','investigation','medicines','h_o_tb_other_investigations',
-                                'tb_gold','montoux_test','cbc_esr','xray_cect_hrct','gene_xpert',
-                                'usg_wa_ct_scan','cd4_cd8','ige','vit_d','lft','rft','il2',
-                                'contact_details','ltbi_qs_10','ltbi_qs_09','refer'
-                            ];
-                        @endphp
-
-                        @foreach($fields as $field)
-                        <div class="col-md-6 mb-3">
-                            <label>{{ ucwords(str_replace('_',' ',$field)) }}</label>
-                            <input type="text" name="{{ $field }}" class="form-control">
-                        </div>
-                        @endforeach
-
-                        <div class="col-md-12 mb-3">
+                        <div class="mt-4">
                             <button type="submit" class="btn btn-dark">
                                 Submit Patient Data
                             </button>
                         </div>
-
-                    </div>
-                </form>
+                    </form>
+                </div>
 
             </div>
 

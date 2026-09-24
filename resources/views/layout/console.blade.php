@@ -131,6 +131,25 @@
             white-space: nowrap;
         }
 
+        .console-bulk-table .bulk-check-col {
+            width: 44px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .console-bulk-table input[type="checkbox"][data-select-all],
+        .console-bulk-table input[type="checkbox"][data-row-selector] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #198754;
+        }
+
+        .table-dark .bulk-check-col input[type="checkbox"] {
+            filter: brightness(1.15);
+        }
+
         .console-form label {
             display: block;
             font-weight: 600;
@@ -335,15 +354,11 @@
     </style>
 </head>
 
-@php
-    $uploadCompressionEnabled = config('upload_compression.enabled', false)
-        || config('upload_compression.video_enabled', false);
-@endphp
 <body class="console-body"
       data-php-upload-max-bytes="{{ \App\Support\UploadLimits::effectiveMaxBytes() }}"
       data-php-upload-max-label="{{ \App\Support\UploadLimits::effectiveMaxLabel() }}"
-      data-upload-compression-enabled="{{ $uploadCompressionEnabled ? '1' : '0' }}"
-      @if($uploadCompressionEnabled && config('upload_compression.video_compress_async')) data-video-compress-async="1" @endif>
+      data-php-image-batch-size="{{ \App\Support\UploadLimits::imageUploadBatchSize() }}"
+      data-php-image-batch-max-mb="150">
 
     <!-- Top Navigation -->
     <div class="adminbar topbar w3-padding">
@@ -358,6 +373,7 @@
                     </span>
 
                     <a href="/console/dashboard">Dashboard</a>
+                    <a href="{{ route('console.account.password') }}">Password</a>
                     <a href="/console/footer">Footer</a>
                     <a href="/">View Site</a>
                     <a href="/console/logout" class="w3-text-red"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
@@ -398,7 +414,8 @@
         <span class="d-inline-block px-3">© Copyright 2026 Ministry of Ayush. All Rights Reserved</span>
     </footer>
 
-    <script src="{{ asset('assets/js/console-upload-progress.js') }}?v=20260921marquee2"></script>
+    <script src="{{ asset('assets/js/console-upload-progress.js') }}?v=20260923bulkupload2"></script>
+    <script src="{{ asset('assets/js/console-bulk-selection.js') }}?v=20260922daterange"></script>
     <script>
     $(document).ready(function () {
         $('.datatable').each(function () {

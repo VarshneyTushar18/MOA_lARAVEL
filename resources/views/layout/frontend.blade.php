@@ -16,7 +16,7 @@
 
 <!-- GLightbox CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
-    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v=20260922profiledesktop">
+    <link rel="stylesheet" href="{{ asset('assets/css/main.css') }}?v=20260924gallery4">
     @stack('head')
 </head>
 
@@ -32,7 +32,7 @@
                 </div>
                 <div class="header-brand-right">
                     <a href="/">
-                        <img src="{{ asset('assets/images/aiia-header-logo.png') }}?v=20260922aiiaone" alt="All India Institute of Ayurveda" class="aiia-header-logo">
+                        <img src="{{ asset('assets/images/aiia-header-brand.png') }}?v=20260924aiiabrand" alt="All India Institute of Ayurveda" class="aiia-header-logo">
                     </a>
                 </div>
             </div>

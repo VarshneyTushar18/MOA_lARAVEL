@@ -24,6 +24,7 @@ class SurveyResponsesExport implements FromCollection, WithHeadings, WithMapping
         'frequent_hospital_visits',
         'difficulty_or_pain_in_joint_movements',
         'frequent_headache_dizziness_lightheadedness',
+        'risk_stage',
         'known_immunosuppression',
         'fever',
         'cough_with_sputum_more_than_3_weeks',
@@ -49,7 +50,6 @@ class SurveyResponsesExport implements FromCollection, WithHeadings, WithMapping
         'aware_of_ongoing_phi_project',
         'satisfied_with_information_provided',
         'investigator_name_designation_affiliation_email',
-        'principal_investigator',
     ];
 
     public function __construct(?Collection $rows = null)

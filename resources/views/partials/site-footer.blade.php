@@ -1,12 +1,10 @@
-<footer>
-    <div class="container pb-5">
-        <div class="row pb-3 footer-main-row g-4">
+<footer class="footer-compact">
+    <div class="container pb-4">
+        <div class="row footer-main-row g-3 g-lg-4">
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="footer-widget">
                     @php
                         $logoUrl = strtolower($siteFooter['logo']['url'] ?? '');
-                        // Only use wide layout for known horizontal ministry banner files.
-                        // Alt text alone is unreliable (PHI emblem is also uploaded with "Ministry of Ayush").
                         $footerLogoWide = str_contains($logoUrl, 'main-logo')
                             || str_contains($logoUrl, 'ministry-ayush')
                             || str_contains($logoUrl, '/nam.')
@@ -64,7 +62,7 @@
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="footer-widget text-white">
                     <h4>{{ $siteFooter['contact']['title'] }}</h4>
-                    <div class="contact-address pb-3 d-flex gap-3">
+                    <div class="contact-address pb-2 d-flex gap-2">
                         <div class="icon">
                             <i class="ri-map-pin-line"></i>
                         </div>
@@ -73,7 +71,7 @@
                         </div>
                     </div>
                     @if(filled($siteFooter['contact']['phone']))
-                        <div class="contact-phone pb-3 d-flex gap-3 align-items-center">
+                        <div class="contact-phone pb-2 d-flex gap-2 align-items-center">
                             <div class="icon">
                                 <i class="ri-phone-line"></i>
                             </div>
@@ -83,12 +81,20 @@
                         </div>
                     @endif
                     @if(filled($siteFooter['contact']['email']))
-                        <div class="contact-mail pb-3 d-flex gap-3 align-items-center">
+                        <div class="contact-mail pb-2 d-flex gap-2 align-items-center">
                             <div class="icon">
                                 <i class="ri-mail-send-line"></i>
                             </div>
                             <div class="context">
                                 {{ $siteFooter['contact']['email'] }}
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(filled($siteFooter['contact']['map_embed'] ?? null))
+                        <div class="footer-map pt-1">
+                            <div class="map-block">
+                                {!! $siteFooter['contact']['map_embed'] !!}
                             </div>
                         </div>
                     @endif

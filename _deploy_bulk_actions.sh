@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e
+APP="/home/sites/41b/b/ba690bc503/MOA_lARAVEL"
+UP="/home/sites/41b/b/ba690bc503/moa_deploy_upload"
+mkdir -p "$APP/routes" "$APP/app/Http/Controllers/Concerns" "$APP/app/Http/Controllers" "$APP/app/Http/Controllers/Console" "$APP/app/Exports" "$APP/resources/views/partials" "$APP/resources/views/contacts_console" "$APP/resources/views/patient_console" "$APP/resources/views/cure_console" "$APP/resources/views/research_console" "$APP/resources/views/idcard_console" "$APP/resources/views/console/survey_responses"
+cp "$UP/web.php" "$APP/routes/web.php"
+cp "$UP/HandlesBulkSelection.php" "$APP/app/Http/Controllers/Concerns/HandlesBulkSelection.php"
+cp "$UP/ContactController.php" "$APP/app/Http/Controllers/ContactController.php"
+cp "$UP/PatientController.php" "$APP/app/Http/Controllers/PatientController.php"
+cp "$UP/CureController.php" "$APP/app/Http/Controllers/CureController.php"
+cp "$UP/ResearchPatientController.php" "$APP/app/Http/Controllers/ResearchPatientController.php"
+cp "$UP/IdCardController.php" "$APP/app/Http/Controllers/IdCardController.php"
+cp "$UP/ConsoleSurveyResponseController.php" "$APP/app/Http/Controllers/Console/SurveyResponseController.php"
+cp "$UP/PatientsListExport.php" "$APP/app/Exports/PatientsListExport.php"
+cp "$UP/ContactsExport.php" "$APP/app/Exports/ContactsExport.php"
+cp "$UP/CurePatientsExport.php" "$APP/app/Exports/CurePatientsExport.php"
+cp "$UP/ResearchPatientsExport.php" "$APP/app/Exports/ResearchPatientsExport.php"
+cp "$UP/IdCardsExport.php" "$APP/app/Exports/IdCardsExport.php"
+cp "$UP/console_bulk_toolbar.blade.php" "$APP/resources/views/partials/console_bulk_toolbar.blade.php"
+cp "$UP/contacts_list.blade.php" "$APP/resources/views/contacts_console/list.blade.php"
+cp "$UP/patient_list.blade.php" "$APP/resources/views/patient_console/list.blade.php"
+cp "$UP/cure_list.blade.php" "$APP/resources/views/cure_console/list.blade.php"
+cp "$UP/research_list.blade.php" "$APP/resources/views/research_console/list.blade.php"
+cp "$UP/idcard_list.blade.php" "$APP/resources/views/idcard_console/list.blade.php"
+cp "$UP/survey_index.blade.php" "$APP/resources/views/console/survey_responses/index.blade.php"
+cd "$APP"
+php82 artisan route:clear
+php82 artisan view:clear
+php82 -r "if (function_exists('opcache_reset')) opcache_reset();"
+echo DONE

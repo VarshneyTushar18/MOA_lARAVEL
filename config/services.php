@@ -30,4 +30,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'google_survey_form' => [
+        'enabled' => env('GOOGLE_SURVEY_FORM_ENABLED', true),
+        'form_id' => env('GOOGLE_SURVEY_FORM_ID', '1FAIpQLSeqoSaOscrrpXqqcqoFY58_MaY4o6-9DEdzP8qs0A9ak-Ujew'),
+    ],
+
 ];

@@ -180,6 +180,18 @@
         }
     }
 
+    if (!function_exists('moaWorkshopSortKey')) {
+        function moaWorkshopSortKey($item): string
+        {
+            $label = (string) ($item->title ?? $item->section_key ?? '');
+            if (preg_match('/\bW\s*-?\s*(\d+)\b/i', $label, $match)) {
+                return sprintf('%010d-%010d', (int) $match[1], (int) ($item->id ?? 0));
+            }
+
+            return moaDisplaySortKey($item);
+        }
+    }
+
     $orderedFactsheetSections = $page->sections
         ->filter(function ($section) {
             return !($section->parent_id && (int) $section->parent_id !== (int) $section->id);
@@ -293,7 +305,7 @@
 @elseif($section->section_key === 'training_survey')
 @php
     $trainingSurvey = $section;
-    $workshopSubs = collect($section->subsections)->sortBy(fn ($item) => moaDisplaySortKey($item))->values();
+    $workshopSubs = collect($section->subsections)->sortBy(fn ($item) => moaWorkshopSortKey($item))->values();
 @endphp
 @if($trainingSurvey)
 <section class="ntpcsection">
@@ -304,7 +316,6 @@
             <div class="col-lg-5">
                 <div class="section-heading">
                     <span>{{ $trainingSurvey->subtitle ?? 'Training & Workshops' }}</span>
-                    <h2>{{ $trainingSurvey->title ?? 'Workshops & Survey' }}</h2>
                 </div>
                 <p>{!! nl2br(e($trainingSurvey->description)) !!}</p>
             </div>
@@ -333,53 +344,37 @@
                     <div class="tab-pane fade @if($index==0) show active @endif"
                          id="content-{{ $sub->id }}">
 
-                        {{-- Image Slider --}}
-                        @if($sub->images && $sub->images->count())
-                        <div class="swiper mySwiper mb-4">
-                            <div class="swiper-wrapper">
-                                @foreach($sub->images as $img)
-                                    @php $imagePath = resolveStorageImage($img->image); @endphp
-                                    @if($imagePath)
-                                    <div class="swiper-slide">
-                                        <a href="{{ asset('storage/'.$imagePath) }}"
-                                           class="glightbox"
-                                           data-gallery="gallery-{{ $sub->id }}">
-                                            <img src="{{ asset('storage/'.$imagePath) }}"
-                                                 class="img-fluid"
-                                                 loading="lazy"
-                                                 decoding="async"
-                                                 alt="">
-                                        </a>
-                                    </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                            <div class="swiper-pagination"></div>
-                        </div>
-                        @endif
-
-                        {{-- Videos Grid --}}
                         @php
-                            $youtubeUrls = collect($sub->videos ?? [])
+                            $workshopGalleryImages = collect();
+                            foreach ($sub->images ?? [] as $img) {
+                                $imagePath = resolveStorageImage($img->image);
+                                if ($imagePath) {
+                                    $workshopGalleryImages->push((object) ['image' => $imagePath]);
+                                }
+                            }
+
+                            $workshopVideos = ($sub->media ?? collect())->where('type', 'video')->values();
+                            $workshopYoutubes = collect($sub->videos ?? [])
                                 ->merge(($sub->media ?? collect())->where('type', 'youtube')->pluck('youtube_url'))
                                 ->filter()
                                 ->unique()
+                                ->map(fn ($url) => (object) ['youtube_url' => $url])
                                 ->values();
                         @endphp
-                        @if($youtubeUrls->count())
-                        <div class="row g-4">
-                            @foreach($youtubeUrls as $videoUrl)
-                                @php
-                                    $videoId = extractYoutubeVideoId($videoUrl);
-                                @endphp
 
-                                @if($videoId)
-                                <div class="col-md-6">
-                                    @include('partials.youtube-card', ['id' => $videoId, 'url' => $videoUrl])
-                                </div>
-                                @endif
-                            @endforeach
-                        </div>
+                        @if($workshopGalleryImages->isNotEmpty())
+                            @include('partials.acsm-image-gallery', [
+                                'images' => $workshopGalleryImages,
+                                'galleryId' => 'workshop-images-'.$sub->id,
+                                'sectionTitle' => $sub->title.' workshop photo',
+                            ])
+                        @endif
+
+                        @if($workshopVideos->count() || $workshopYoutubes->count())
+                            @include('partials.acsm-video-gallery', [
+                                'videos' => $workshopVideos,
+                                'youtubes' => $workshopYoutubes,
+                            ])
                         @endif
 
                     </div>
@@ -549,24 +544,18 @@
 
 
 @push('scripts')
+@include('partials.acsm-gallery-scripts')
 <script>
-document.querySelectorAll(".mySwiper").forEach(function (el) {
-    var paginationEl = el.querySelector(".swiper-pagination");
-    new Swiper(el, {
-        slidesPerView: 1,
-        spaceBetween: 16,
-        loop: el.querySelectorAll(".swiper-slide").length > 2,
-        pagination: paginationEl ? {
-            el: paginationEl,
-            clickable: true,
-            dynamicBullets: true,
-            dynamicMainBullets: 5
-        } : false,
-        breakpoints: {
-            0: { slidesPerView: 1 },
-            576: { slidesPerView: 2 },
-            992: { slidesPerView: 2 }
+initAcsmCarouselsIn(document);
+
+document.querySelectorAll("#workshopTabs [data-bs-toggle='tab']").forEach(function (tabBtn) {
+    tabBtn.addEventListener("shown.bs.tab", function () {
+        var target = document.querySelector(tabBtn.getAttribute("data-bs-target"));
+        if (!target) {
+            return;
         }
+        pauseAcsmVideos(target);
+        initAcsmCarouselsIn(target);
     });
 });
 

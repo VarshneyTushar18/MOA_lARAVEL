@@ -14,6 +14,7 @@ class PageSectionMedia extends Model
         'youtube_url',
         'title',
         'description',
+        'sort_order',
     ];
 
     public function section()

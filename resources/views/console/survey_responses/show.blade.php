@@ -4,8 +4,20 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Survey Response #{{ $response->id }}</h2>
-        <a href="{{ route('console.survey_responses.index') }}" class="btn btn-secondary btn-sm">Back</a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('console.survey_responses.edit', $response) }}" class="btn btn-primary btn-sm">Edit</a>
+            <form action="{{ route('console.survey_responses.destroy', $response) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this survey response?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+            <a href="{{ route('console.survey_responses.index') }}" class="btn btn-secondary btn-sm">Back</a>
+        </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     <div class="card p-3 mb-4">
         <h4>Basic Information</h4>
@@ -34,6 +46,7 @@
             'frequent_hospital_visits' => '8. FREQUENTLY HOSPITAL VISIT (बार-बार अस्पताल जाना)',
             'difficulty_or_pain_in_joint_movements' => '9. DIFFICULTY / PAIN IN JOINT MOVEMENTS (जोड़ों में दर्द)',
             'frequent_headache_dizziness_lightheadedness' => '10. FREQUENT HEADACHE/ DIZZINESS (बार-बार सिरदर्द/चक्कर)',
+            'risk_stage' => '11. STAGES',
             'known_immunosuppression' => 'K/C/O IMMUNOSUPPRESSION (इम्यूनोसप्रेशन का ज्ञात कारण)',
             'fever' => '1. FEVER (बुखार)',
             'cough_with_sputum_more_than_3_weeks' => '2. COUGH WITH SPUTUM > 3 WEEKS',
@@ -43,7 +56,7 @@
             'chest_pain' => '6. CHEST PAIN (छाती में दर्द)',
             'blood_in_urine' => '7. BLOOD IN URINE (पेशाब में खून)',
             'recurrent_diarrhea_loss_of_appetite_abdominal_distension_pain' => '8. RECURRENT DIARRHEA / LOSS OF APPETITE / ABDOMINAL DISTENSION',
-            'other_relevant_information_by_screening_officer' => 'ANY OTHER RELEVANT INFORMATION BY SCREENING OFFICER',
+            'other_relevant_information_by_screening_officer' => 'Any other relevant information given by the screening officer? / स्क्रीनिंग अधिकारी द्वारा दी गई अन्य प्रासंगिक जानकारी?',
             'previous_treatment_of_tb_and_duration' => '1. PREVIOUS TREATMENT OF TB (IF YES, DURATION)',
             'history_of_extra_pulmonary_tb_details' => '2. HISTORY OF EXTRA PULMONARY TB',
             'family_history_of_tb' => '3. FAMILY HISTORY OF TB',
@@ -59,7 +72,6 @@
             'aware_of_ongoing_phi_project' => '4. AWARE OF ONGOING PHI PROJECT',
             'satisfied_with_information_provided' => '5. SATISFIED WITH PROVIDED INFORMATION',
             'investigator_name_designation_affiliation_email' => 'INVESTIGATOR NAME, DESIGNATION, AFFILIATION, EMAIL',
-            'principal_investigator' => 'PRINCIPAL INVESTIGATOR (प्रमुख अन्वेषक)',
         ];
 
         $optionMaps = [
@@ -90,6 +102,11 @@
                 'MDR' => 'MDR',
                 'XDR' => 'XDR',
                 'PRIMARY_CASE' => 'PRIMARY CASE',
+            ],
+            'risk_stage' => [
+                'LOW_RISK_1_3' => '1-3 Low Risk',
+                'MODERATE_RISK_4_6' => '4-6 Moderate Risk',
+                'HIGH_RISK_7_10' => '7-10 High Risk',
             ],
         ];
     @endphp

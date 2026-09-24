@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SurveyResponse;
+use App\Services\GoogleSurveyFormSyncService;
 use Illuminate\Http\Request;
 
 class SurveyResponseController extends Controller
@@ -24,17 +25,7 @@ class SurveyResponseController extends Controller
             'contact_details' => 'required|string|max:30',
             'gender' => 'nullable|in:Male,Female',
             'age' => 'nullable|integer|min:0|max:120',
-            'registration_number' => [
-                'required',
-                'string',
-                'max:255',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $compact = preg_replace('/[\s\-]/', '', (string) $value);
-                    if ($compact !== '' && ctype_digit($compact) && strlen($compact) !== 12) {
-                        $fail('If you enter only digits as registration, it must be exactly 12 digits (Aadhaar). For UHID or screening numbers that are shorter or longer, include letters or hyphens as on your card.');
-                    }
-                },
-            ],
+            'registration_number' => 'required|string|max:255',
             'survey_date' => 'nullable|date',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
@@ -52,6 +43,7 @@ class SurveyResponseController extends Controller
             'frequent_hospital_visits' => 'nullable|in:YES,NO',
             'difficulty_or_pain_in_joint_movements' => 'nullable|in:YES,NO',
             'frequent_headache_dizziness_lightheadedness' => 'nullable|in:YES,NO',
+            'risk_stage' => 'nullable|in:LOW_RISK_1_3,MODERATE_RISK_4_6,HIGH_RISK_7_10',
             'known_immunosuppression' => 'nullable|array',
             'known_immunosuppression.*' => 'in:HIV,DIRECT_CONTACT_WITH_TB_PATIENT,DRUG_ABUSER,MALNUTRITION,CHRONIC_KIDNEY_DISEASE,DIABETES,LIVER_CIRRHOSIS',
             'fever' => 'nullable|in:YES,NO',
@@ -78,7 +70,6 @@ class SurveyResponseController extends Controller
             'aware_of_ongoing_phi_project' => 'nullable|in:Yes,No',
             'satisfied_with_information_provided' => 'nullable|in:Yes,No',
             'investigator_name_designation_affiliation_email' => 'required|string|max:1000',
-            'principal_investigator' => 'nullable|string|max:255',
         ], [
             'name.regex' => 'Name may only contain letters (including Hindi and other scripts), spaces, apostrophes, hyphens, and periods.',
         ]);
@@ -97,7 +88,7 @@ class SurveyResponseController extends Controller
             'message',
         ]);
 
-        SurveyResponse::create([
+        $surveyResponse = SurveyResponse::create([
             'name' => $validated['name'] ?? null,
             'address' => $validated['address'] ?? null,
             'contact_details' => $validated['contact_details'] ?? null,
@@ -110,6 +101,8 @@ class SurveyResponseController extends Controller
             'message' => $validated['message'] ?? null,
             'answers' => $answers,
         ]);
+
+        app(GoogleSurveyFormSyncService::class)->sync($surveyResponse);
 
         return redirect()->route('survey.form')->with('success', 'Survey submitted successfully.');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\CompressStoredImageJob;
 use App\Jobs\CompressStoredVideoJob;
 use GdImage;
 use Illuminate\Http\UploadedFile;
@@ -18,24 +19,12 @@ class CompressedUploadStorage
     public static function storeImage(UploadedFile $file, string $directory, string $disk = 'public'): string
     {
         // Always store first so upload response stays fast; optimize in the queue when enabled.
-        $path = $file->store($directory, $disk);
-
-        if (self::shouldProcess($file)) {
-            \App\Jobs\CompressStoredImageJob::dispatch($disk, $path);
-        }
-
-        return $path;
+        return $file->store($directory, $disk);
     }
 
     public static function storeImageAs(UploadedFile $file, string $directory, string $filename, string $disk = 'local'): string
     {
-        $path = $file->storeAs($directory, $filename, $disk);
-
-        if (self::shouldProcess($file)) {
-            \App\Jobs\CompressStoredImageJob::dispatch($disk, $path);
-        }
-
-        return $path;
+        return $file->storeAs($directory, $filename, $disk);
     }
 
     /**
@@ -533,6 +522,27 @@ class CompressedUploadStorage
         $cached = false;
 
         return null;
+    }
+
+    private static function queueImageCompression(string $disk, string $path): void
+    {
+        if (! config('upload_compression.enabled', false)) {
+            return;
+        }
+
+        // Sync queue runs jobs inline; skip so admin bulk uploads never crash the request.
+        if (config('queue.default', 'sync') === 'sync') {
+            return;
+        }
+
+        try {
+            CompressStoredImageJob::dispatchAfterResponse($disk, $path);
+        } catch (\Throwable $e) {
+            Log::warning('Image compression skipped after upload.', [
+                'path' => $path,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     private static function shouldProcess(UploadedFile $file): bool

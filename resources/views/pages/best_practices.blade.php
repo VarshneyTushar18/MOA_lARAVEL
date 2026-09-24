@@ -3,139 +3,63 @@
 @section('content')
 
 @php
-    $grouped = $page->sections->groupBy('section_key');
-
-    function getSection($grouped, $key) {
-        return $grouped->get($key, collect())->first();
+    if (!function_exists('resolveStoragePath')) {
+        function resolveStoragePath($path) {
+            if (!$path) return null;
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            $normalized = ltrim(str_replace('\\', '/', $path), '/');
+            if (str_starts_with($normalized, 'storage/')) {
+                $normalized = substr($normalized, strlen('storage/'));
+            }
+            if ($disk->exists($normalized) || $disk->exists($path)) {
+                return $normalized;
+            }
+            if (is_file(public_path('storage/'.$normalized))) {
+                return $normalized;
+            }
+            return $path;
+        }
     }
 
-    function resolveStoragePath($path) {
-        if (!$path) return null;
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
-        return $disk->exists($path) ? $path : null;
-    }
+    $bestSections = $page->sections
+        ->filter(function ($section) {
+            return empty($section->parent_id);
+        })
+        ->sortBy(function ($section) {
+            $order = (int) ($section->sort_order ?? 0);
+            if ($order <= 0) {
+                $order = 100000 + (int) $section->id;
+            }
+            return sprintf('%010d-%010d', $order, (int) $section->id);
+        })
+        ->values();
 @endphp
 
-
-{{-- ============================= --}}
-{{-- PAGE HEADER --}}
-{{-- ============================= --}}
 <section class="page-header">
     <div class="container">
         <div class="row">
             <div class="col-12">
-                <h1>{{ $page->title}}</h1>
+                <h1>{{ $page->title }}</h1>
                 <ul class="breadcrumbs">
                     <li><a href="{{ url('/') }}">Home</a></li>
                     <li><img src="{{ asset('assets/images/double-arrow.svg') }}" alt=""></li>
-                    <li><a href="#">{{ $page->title}}</a></li>
+                    <li><a href="#">{{ $page->title }}</a></li>
                 </ul>
             </div>
         </div>
     </div>
 </section>
 
-
-{{-- ============================= --}}
-{{-- 1️⃣ SUCCESS STORIES --}}
-{{-- ============================= --}}
-@php $success = getSection($grouped,'success_stories'); @endphp
-@php $videos = getSection($grouped,'patient_videos'); @endphp
-@php $photos = getSection($grouped,'photos'); @endphp
 <section class="ntpcsection mt-5 mb-5">
     <div class="container">
         <div class="accordion" id="bestPracticesAccordion">
-
-        @if($success)
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="bestHeadingSuccess">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bestCollapseSuccess" aria-expanded="true" aria-controls="bestCollapseSuccess">
-                    {{ $success->title ?? 'Success Stories' }}
-                </button>
-            </h2>
-            <div id="bestCollapseSuccess" class="accordion-collapse collapse show" aria-labelledby="bestHeadingSuccess" data-bs-parent="#bestPracticesAccordion">
-                <div class="accordion-body">
-                    <div class="section-heading text-center mb-4">
-                        <h2>{{ $success->title }}</h2>
-                    </div>
-                    <div class="row g-4">
-                        @foreach($success->subsections ?? [] as $story)
-                        <div class="col-md-6">
-                            <div class="card shadow-sm p-4 h-100">
-                                <h5>{{ $story->title }}</h5>
-                                <p>{{ $story->description }}</p>
-                            </div>
-                        </div>
-                        @endforeach
-                        @foreach($success->media->where('type','pdf') as $file)
-                        <div class="col-md-4">
-                            @include('partials.pdf-card', ['pdf' => $file, 'section' => $success, 'heading' => strtoupper(pathinfo($file->file_path, PATHINFO_EXTENSION)).' File'])
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        @if($videos)
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="bestHeadingVideos">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bestCollapseVideos" aria-expanded="false" aria-controls="bestCollapseVideos">
-                    {{ $videos->title ?? 'Patient Videos' }}
-                </button>
-            </h2>
-            <div id="bestCollapseVideos" class="accordion-collapse collapse" aria-labelledby="bestHeadingVideos" data-bs-parent="#bestPracticesAccordion">
-                <div class="accordion-body">
-                    <div class="section-heading text-center mb-4">
-                        <h2>{{ $videos->title }}</h2>
-                    </div>
-                    <div class="row g-4">
-                        @foreach($videos->media->where('type','video') as $video)
-                            @php $path = resolveStoragePath($video->file_path); @endphp
-                            @if($path)
-                            <div class="col-md-6 col-lg-4">
-                                <video width="100%" height="300" controls>
-                                    <source src="{{ asset('storage/'.$path) }}" type="video/mp4">
-                                </video>
-                            </div>
-                            @endif
-                        @endforeach
-                        @foreach($videos->media->where('type','youtube') as $yt)
-                            <div class="col-md-6 col-lg-4">
-                                @include('partials.youtube-card', ['url' => $yt->youtube_url])
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-
-        @if($photos)
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="bestHeadingPhotos">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bestCollapsePhotos" aria-expanded="false" aria-controls="bestCollapsePhotos">
-                    {{ $photos->title ?? 'Photos' }}
-                </button>
-            </h2>
-            <div id="bestCollapsePhotos" class="accordion-collapse collapse" aria-labelledby="bestHeadingPhotos" data-bs-parent="#bestPracticesAccordion">
-                <div class="accordion-body">
-
-                    <div class="section-heading text-center mb-4">
-                        <h2>{{ $photos->title }}</h2>
-                    </div>
-                    <div class="row g-4">
-                        @foreach($photos->images as $img)
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <img src="{{ asset('storage/'.$img->image) }}" class="img-fluid rounded shadow" loading="lazy" decoding="async">
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
+            @foreach($bestSections as $section)
+                @include('partials.acsm-section', [
+                    'section' => $section,
+                    'isFirst' => $loop->first,
+                    'accordionParent' => 'bestPracticesAccordion',
+                ])
+            @endforeach
         </div>
     </div>
 </section>
@@ -143,3 +67,23 @@
 @include('partials.page-faq')
 
 @endsection
+
+@push('scripts')
+@include('partials.acsm-gallery-scripts')
+<script>
+if (typeof GLightbox === 'function') {
+    GLightbox({ selector: '.glightbox' });
+}
+
+document.querySelectorAll('#bestPracticesAccordion .accordion-collapse').forEach(function (panel) {
+    panel.addEventListener('shown.bs.collapse', function () {
+        pauseAcsmVideos(panel);
+        initAcsmCarouselsIn(panel);
+    });
+});
+
+document.querySelectorAll('#bestPracticesAccordion .accordion-collapse.show').forEach(function (panel) {
+    initAcsmCarouselsIn(panel);
+});
+</script>
+@endpush

@@ -182,7 +182,7 @@ header .header-container {
 
 header .ministry-logo {
     height: auto;
-    max-height: 72px;
+    max-height: 88px;
     width: auto;
     max-width: 100%;
     display: block;
@@ -195,8 +195,8 @@ header .aiia-header-logo {
     display: block;
     width: auto;
     height: auto;
-    max-height: 80px;
-    max-width: 90px;
+    max-height: 88px;
+    max-width: min(100%, 640px);
     margin-left: auto;
     border: 0;
     box-shadow: none;
@@ -1142,18 +1142,23 @@ header .navbar-nav {
 }
 
 .aiia-gallery-panel__album-thumb {
+    position: relative;
     display: block;
+    width: 100%;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid #dde4ee;
-    aspect-ratio: 1;
-    background: #fff;
+    aspect-ratio: 4 / 3;
+    background: #e8edf3;
 }
 
 .aiia-gallery-panel__album-thumb img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     display: block;
     transition: transform 0.3s ease;
 }
@@ -1162,9 +1167,11 @@ header .navbar-nav {
     display: block;
     margin-top: 7px;
     font-size: 12px;
-    line-height: 1.35;
+    line-height: 1.45;
     font-weight: 500;
     color: var(--text-primary);
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .aiia-gallery-panel__album:hover .aiia-gallery-panel__album-thumb img,
@@ -1337,9 +1344,11 @@ header .navbar-nav {
 .gallery-album-card__image {
     width: 100%;
     aspect-ratio: 4 / 3;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     display: block;
     transition: transform 0.3s ease;
+    background: #f8fafc;
 }
 
 .gallery-album-card__overlay {
@@ -1372,6 +1381,9 @@ header .navbar-nav {
     text-align: center;
     margin: 14px 0 0;
     color: var(--black-primary);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
 }
 
 .gallery-photo-card {
@@ -1404,94 +1416,85 @@ header .navbar-nav {
 
 .rolsresponsibilitysection {
     background: var(--light-grey);
-    padding: 60px 0px;
-    --profile-photo-max: 148px;
-    --profile-photo-min: 112px;
-    --profile-photo-ratio: 4 / 5;
+    padding: clamp(28px, 4vw, 40px) 0;
+    --role-photo-width: clamp(72px, 22%, 96px);
+}
+
+.rolsresponsibilitysection h2 {
+    font-size: clamp(20px, 2.1vw, 26px);
+    line-height: 1.3;
+    margin-bottom: 0;
+    padding-bottom: clamp(18px, 2.5vw, 28px) !important;
 }
 
 .rolsresponsibilitysection .roles-row > [class*="col-"] {
     display: flex;
 }
 
-.profile-card {
+.rolsresponsibilitysection .profile-card {
     margin-bottom: 0;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
     min-height: 100%;
+    gap: 0;
+    background: var(--white-primary);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e3e9f2;
+    box-shadow: 0 1px 6px rgba(22, 47, 109, 0.06);
 }
 
-.profile-card .content {
-    background: var(--white-primary);
-    padding: 16px 18px;
-    border-radius: 8px;
+.rolsresponsibilitysection .profile-card .content {
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 0;
     flex: 1 1 0;
     min-width: 0;
     text-align: left;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-.profile-card .content h4 {
-    font-size: 20px;
+.rolsresponsibilitysection .profile-card .content h4 {
+    font-size: clamp(12px, 1.05vw, 14px);
     color: var(--blue-primary);
-    margin-bottom: 4px;
-    text-align: left;
+    margin-bottom: 3px;
+    line-height: 1.3;
+    font-weight: 700;
 }
 
-.profile-card .content h6 {
-    font-size: 16px;
+.rolsresponsibilitysection .profile-card .content h6 {
+    font-size: clamp(10px, 0.9vw, 12px);
     color: var(--black-primary);
     margin-bottom: 0;
-    line-height: 1.45;
-    text-align: left;
-    hyphens: manual;
-    font-weight: 600;
+    line-height: 1.35;
+    font-weight: 500;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
-.profile-card .image {
-    flex: 0 0 clamp(var(--profile-photo-min), 34%, var(--profile-photo-max));
-    width: clamp(var(--profile-photo-min), 34%, var(--profile-photo-max));
-    max-width: var(--profile-photo-max);
-    min-width: var(--profile-photo-min);
-    height: auto;
-    aspect-ratio: var(--profile-photo-ratio);
-    border-radius: 8px;
+.rolsresponsibilitysection .profile-card .image {
+    position: relative;
+    flex: 0 0 var(--role-photo-width);
+    width: var(--role-photo-width);
+    min-width: var(--role-photo-width);
+    align-self: stretch;
+    min-height: 88px;
     overflow: hidden;
-    background: var(--white-primary);
+    background: #e8edf3;
+    border-right: 1px solid #e3e9f2;
 }
 
-.profile-card .image img {
-    border-radius: 8px;
+.rolsresponsibilitysection .profile-card .image img {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
-    max-width: none;
     object-fit: cover;
-    object-position: center center;
-}
-
-@media (min-width: 992px) and (max-width: 1199.98px) {
-    .rolsresponsibilitysection {
-        --profile-photo-max: 136px;
-        --profile-photo-min: 108px;
-    }
-
-    .profile-card .content h6 {
-        font-size: 14px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .rolsresponsibilitysection {
-        --profile-photo-max: 148px;
-        --profile-photo-min: 118px;
-    }
-}
-
-@media (min-width: 1600px) {
-    .rolsresponsibilitysection {
-        --profile-photo-max: 148px;
-        --profile-photo-min: 118px;
-    }
+    object-position: center top;
 }
 
 /** Profile Section CSS End **/
@@ -1645,6 +1648,386 @@ header .navbar-nav {
 
 .mySwiper {
     margin: 0px 50px;
+}
+
+.ntpcsection .workshop-gallery {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto 1rem;
+}
+
+.ntpcsection .workshop-gallery__stage {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f172a;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+}
+
+.ntpcsection .workshop-gallery__stage .workshop-swiper {
+    margin: 0;
+    padding: 0 !important;
+    width: 100%;
+    overflow: hidden;
+}
+
+.ntpcsection .workshop-gallery__stage .swiper-slide img {
+    height: auto;
+    min-height: 0;
+}
+
+.ntpcsection .workshop-gallery__stage .swiper-slide {
+    border-radius: 0;
+}
+
+.ntpcsection .workshop-gallery__link {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 240px;
+    background: #1e293b;
+    overflow: hidden;
+}
+
+.ntpcsection .workshop-gallery__img,
+.ntpcsection .workshop-gallery__stage .swiper-slide img.workshop-gallery__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 240px;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+}
+
+.ntpcsection .workshop-gallery__link:hover .workshop-gallery__img {
+    transform: scale(1.03);
+}
+
+.ntpcsection .workshop-gallery__btn {
+    position: absolute;
+    top: 50%;
+    z-index: 12;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--blue-primary, #1e3a8a);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ntpcsection .workshop-gallery__btn--prev {
+    left: 12px;
+}
+
+.ntpcsection .workshop-gallery__btn--next {
+    right: 12px;
+}
+
+.ntpcsection .workshop-gallery__btn:hover {
+    background: var(--blue-primary, #1e3a8a);
+    color: #fff;
+    transform: translateY(-50%) scale(1.06);
+}
+
+.ntpcsection .workshop-gallery__btn.swiper-button-disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.ntpcsection .workshop-gallery__badge {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 12;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.ntpcsection .workshop-gallery__fraction {
+    position: static !important;
+    width: auto !important;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.ntpcsection .workshop-gallery__fraction .swiper-pagination-current {
+    color: #86efac;
+}
+
+.ntpcsection .workshop-gallery__total {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.82);
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    padding-left: 8px;
+}
+
+.ntpcsection .workshop-tabs-scroll {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    border-bottom: none;
+    margin-bottom: 14px;
+    padding-bottom: 2px;
+}
+
+.ntpcsection .workshop-tabs-scroll .nav-item {
+    flex: 0 0 auto;
+}
+
+.ntpcsection .workshop-tabs-scroll .nav-link {
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    background: #f8fafc;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.ntpcsection .workshop-tabs-scroll .nav-link:hover {
+    color: var(--blue-primary, #1e3a8a);
+    border-color: #b8c9e6;
+}
+
+.ntpcsection .workshop-tabs-scroll .nav-link.active {
+    color: #fff;
+    background: var(--blue-primary, #1e3a8a);
+    border-color: var(--blue-primary, #1e3a8a);
+}
+
+@media (max-width: 991.98px) {
+    .ntpcsection .workshop-gallery {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ntpcsection .workshop-gallery__link,
+    .ntpcsection .workshop-gallery__img,
+    .ntpcsection .workshop-gallery__stage .swiper-slide img.workshop-gallery__img {
+        max-height: 200px;
+    }
+
+    .ntpcsection .workshop-gallery__btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .ntpcsection .workshop-gallery__btn--prev {
+        left: 8px;
+    }
+
+    .ntpcsection .workshop-gallery__btn--next {
+        right: 8px;
+    }
+}
+
+.ntpcsection .workshop-video-gallery {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.ntpcsection .workshop-video-gallery__stage {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f172a;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+}
+
+.ntpcsection .workshop-video-gallery__stage .workshop-video-swiper {
+    margin: 0;
+    padding: 0 !important;
+    width: 100%;
+    overflow: hidden;
+}
+
+.ntpcsection .workshop-video-gallery__player {
+    aspect-ratio: 16 / 9;
+    max-height: 280px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ntpcsection .workshop-video-gallery__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    background: #000;
+}
+
+.ntpcsection .workshop-video-gallery__player--youtube {
+    padding: 0;
+}
+
+.ntpcsection .workshop-video-gallery__player--youtube .youtube-card {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ntpcsection .workshop-video-gallery__player--youtube .youtube-card__embed {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.ntpcsection .workshop-video-gallery__player--youtube .youtube-card__embed iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+    max-height: 280px;
+    border: 0;
+}
+
+.ntpcsection .workshop-video-gallery__player--youtube .youtube-card__thumb,
+.ntpcsection .workshop-video-gallery__player--youtube .p-2 {
+    display: none;
+}
+
+.ntpcsection .workshop-video-gallery__btn {
+    position: absolute;
+    top: 50%;
+    z-index: 12;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--blue-primary, #1e3a8a);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ntpcsection .workshop-video-gallery__btn--prev {
+    left: 12px;
+}
+
+.ntpcsection .workshop-video-gallery__btn--next {
+    right: 12px;
+}
+
+.ntpcsection .workshop-video-gallery__btn:hover {
+    background: var(--blue-primary, #1e3a8a);
+    color: #fff;
+    transform: translateY(-50%) scale(1.06);
+}
+
+.ntpcsection .workshop-video-gallery__btn.swiper-button-disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.ntpcsection .workshop-video-gallery__badge {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    z-index: 12;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.ntpcsection .workshop-video-gallery__fraction {
+    position: static !important;
+    width: auto !important;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ntpcsection .workshop-video-gallery__fraction .swiper-pagination-current {
+    color: #86efac;
+}
+
+.ntpcsection .workshop-video-gallery__total {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.82);
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    padding-left: 8px;
+}
+
+@media (max-width: 991.98px) {
+    .ntpcsection .workshop-video-gallery {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ntpcsection .workshop-video-gallery__player,
+    .ntpcsection .workshop-video-gallery__video,
+    .ntpcsection .workshop-video-gallery__player--youtube .youtube-card__embed iframe {
+        max-height: 220px;
+    }
+
+    .ntpcsection .workshop-video-gallery__btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .ntpcsection .workshop-video-gallery__btn--prev {
+        left: 8px;
+    }
+
+    .ntpcsection .workshop-video-gallery__btn--next {
+        right: 8px;
+    }
 }
 
 .workshop-tabs-scroll {
@@ -1864,6 +2247,96 @@ footer {
     padding: 60px 0 0;
 }
 
+.footer-compact {
+    padding-top: 40px;
+}
+
+.footer-compact .footer-logo {
+    margin-bottom: 14px;
+}
+
+.footer-compact .footer-logo--circle {
+    width: 190px;
+    height: 190px;
+    max-width: 190px;
+    min-width: 190px;
+    min-height: 190px;
+    flex: 0 0 190px;
+}
+
+.footer-compact .footer-logo--wide {
+    max-width: 260px;
+}
+
+.footer-compact .sponsors-logos {
+    margin-bottom: 0;
+    gap: 12px;
+}
+
+.footer-compact .sponsors-logos__image {
+    width: 118px;
+    height: 118px;
+    max-width: 118px;
+}
+
+.footer-compact .sponsors-logos__image--ministry-wide {
+    width: auto;
+    height: 118px;
+    max-width: min(250px, 100%);
+    max-height: 118px;
+    min-height: 118px;
+}
+
+.footer-compact .footer-widget h4 {
+    font-size: 18px;
+}
+
+.footer-compact .footer-widget h4::after {
+    margin: 12px 0;
+    height: 3px;
+}
+
+.footer-compact .footer-widget ul li {
+    margin-bottom: 10px;
+}
+
+.footer-compact .footer-widget ul li a {
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.footer-compact .footer-widget i {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    font-size: 16px;
+}
+
+.footer-compact .footer-widget .icon {
+    flex: 0 0 32px;
+}
+
+.footer-compact .footer-widget .context {
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.footer-compact .footer-map .map-block iframe {
+    border-radius: 10px;
+    border: 1px solid var(--dim-grey);
+    width: 100%;
+    height: 140px;
+    display: block;
+}
+
+.footer-map .map-block iframe {
+    border-radius: 12px;
+    border: 1px solid var(--dim-grey);
+    width: 100%;
+    height: clamp(220px, 32vw, 320px);
+    display: block;
+}
+
 .footer-logo {
     background: var(--white-primary);
     margin-bottom: 20px;
@@ -2041,6 +2514,39 @@ footer {
 @media (max-width: 767.98px) {
     footer {
         padding-top: 40px;
+    }
+
+    .footer-compact {
+        padding-top: 32px;
+    }
+
+    .footer-compact .footer-logo--circle {
+        width: min(190px, 54vw);
+        height: min(190px, 54vw);
+        max-width: min(190px, 54vw);
+        min-width: min(190px, 54vw);
+        min-height: min(190px, 54vw);
+        flex-basis: min(190px, 54vw);
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .footer-compact .sponsors-logos {
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .footer-compact .sponsors-logos__image {
+        width: 112px;
+        height: 112px;
+        max-width: 112px;
+    }
+
+    .footer-compact .sponsors-logos__image--ministry-wide {
+        height: 112px;
+        max-height: 112px;
+        min-height: 112px;
+        max-width: min(250px, 92vw);
     }
 
     footer .pb-5 {
@@ -2616,50 +3122,11 @@ footer {
 
 
     .rolsresponsibilitysection {
-        padding: 40px 0px;
-    }
-
-    .rolsresponsibilitysection .profile-card {
-        flex-direction: column;
+        --role-photo-width: 68px;
     }
 
     .rolsresponsibilitysection .profile-card .image {
-        flex: 0 0 auto;
-        width: 100%;
-        min-width: 0;
-        max-width: 220px;
-        height: auto;
-        aspect-ratio: 4 / 5;
-        max-height: 240px;
-        margin: 0 auto;
-    }
-
-    .rolsresponsibilitysection .profile-card .image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center center;
-    }
-
-    .profile-card .content {
-        width: 100%;
-        min-height: 0;
-    }
-
-    .profile-card .content h4 {
-        font-size: 18px;
-        color: var(--blue-primary);
-        margin-bottom: 10px;
-    }
-
-    .profile-card .content h6 {
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
-
-    .rolsresponsibilitysection h2 {
-        font-size: 24px;
-        line-height: 32px;
+        min-height: 80px;
     }
 
     .aiiasection {
@@ -2996,14 +3463,13 @@ footer {
         padding-bottom: 0 !important;
     }
 
-    .profile-card .content h6 {
-        font-size: 14px;
-        color: var(--black-primary);
-        margin-bottom: 8px;
+    .rolsresponsibilitysection .profile-card .content h6 {
+        font-size: 11px;
+        margin-bottom: 0;
     }
 
-    .profile-card .content {
-        min-height: max-content;
+    .rolsresponsibilitysection .profile-card .content {
+        min-height: 0;
     }
 
     header .navbar-toggler {
@@ -3469,6 +3935,19 @@ iframe {
     flex: 0 0 auto;
 }
 
+.opd-patient-form-table th,
+.opd-patient-form-table td {
+    vertical-align: middle;
+}
+
+.opd-patient-form-table td:first-child {
+    white-space: nowrap;
+}
+
+.opd-patient-form-table td:nth-child(2) {
+    font-weight: 500;
+}
+
 .ntpcsection video[width="100%"],
 .ntpcsection iframe[width="100%"],
 section video[width="100%"],
@@ -3509,11 +3988,11 @@ section iframe[width="100%"] {
     header .ministry-logo {
         margin: 0;
         max-width: 100%;
-        max-height: 58px;
+        max-height: 68px;
     }
 
     header .aiia-header-logo {
-        max-width: 84px;
+        max-width: min(100%, 520px);
         max-height: 72px;
         object-position: right center;
     }
@@ -3551,15 +4030,15 @@ section iframe[width="100%"] {
 
     header .ministry-logo {
         height: auto;
-        max-height: 56px;
-        max-width: min(300px, 92vw);
+        max-height: 64px;
+        max-width: min(340px, 92vw);
         width: auto;
         margin: 0 auto;
     }
 
     header .aiia-header-logo {
         max-height: 68px;
-        max-width: 80px;
+        max-width: min(100%, 92vw);
         width: auto;
         margin: 0 auto;
         object-position: center;
@@ -3775,13 +4254,13 @@ section iframe[width="100%"] {
     }
 
     header .ministry-logo {
-        max-height: 50px;
+        max-height: 58px;
         max-width: 94vw;
     }
 
     header .aiia-header-logo {
-        max-height: 62px;
-        max-width: 76px;
+        max-height: 60px;
+        max-width: min(100%, 94vw);
     }
 
     header form input[type="text"] {
@@ -4026,5 +4505,178 @@ section iframe[width="100%"] {
     .moasection .image-area .img-card--tall img {
         object-fit: contain !important;
         max-height: none;
+    }
+}
+
+/* TB Pledge year tabs — photos carousel + videos carousel per year */
+.ntpcsection .tb-pledge-year-tabs__nav {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    border-bottom: 2px solid #e8eef5;
+    margin-bottom: 1.25rem;
+}
+
+.ntpcsection .tb-pledge-year-tabs__nav .nav-link {
+    border: 1px solid #d8e2ec;
+    border-bottom: none;
+    border-radius: 0.5rem 0.5rem 0 0;
+    color: #334155;
+    font-weight: 600;
+    padding: 0.65rem 1rem;
+    background: #f8fafc;
+}
+
+.ntpcsection .tb-pledge-year-tabs__nav .nav-link.active {
+    background: #fff;
+    color: #0f4c81;
+    border-color: #0f4c81;
+    box-shadow: inset 0 -3px 0 #0f4c81;
+}
+
+.ntpcsection .tb-pledge-year-tabs__count {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-top: 0.15rem;
+}
+
+.ntpcsection .tb-pledge-year-block__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f4c81;
+    margin-bottom: 0.75rem;
+}
+
+.ntpcsection .tb-pledge-year-tabs .workshop-gallery,
+.ntpcsection .tb-pledge-year-tabs .workshop-video-gallery {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ntpcsection .acsm-image-gallery .workshop-gallery__stage {
+    min-height: 240px;
+}
+
+.ntpcsection .acsm-image-gallery .workshop-swiper,
+.ntpcsection .acsm-image-gallery .swiper-wrapper,
+.ntpcsection .acsm-image-gallery .swiper-slide {
+    min-height: 240px;
+}
+
+.ntpcsection .acsm-image-gallery .workshop-gallery__link {
+    min-height: 240px;
+    max-height: 320px;
+    aspect-ratio: 16 / 10;
+}
+
+.ntpcsection .acsm-image-gallery .workshop-gallery__img,
+.ntpcsection .acsm-image-gallery .workshop-gallery__stage .swiper-slide img.workshop-gallery__img {
+    width: 100%;
+    height: 100%;
+    min-height: 240px;
+    max-height: 320px;
+    object-fit: contain;
+    background: #1e293b;
+}
+
+/* ACSM video gallery — show up to 3 videos side by side, carousel when more */
+.ntpcsection .acsm-video-gallery--static {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ntpcsection .acsm-video-gallery__grid {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.ntpcsection .acsm-video-gallery__grid--1 {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.ntpcsection .acsm-video-gallery__grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-video-gallery__grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-video-gallery__grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-video-gallery__item {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f172a;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+}
+
+.ntpcsection .acsm-video-gallery--static .workshop-video-gallery__player {
+    aspect-ratio: 16 / 9;
+    max-height: none;
+}
+
+.ntpcsection .acsm-video-gallery--static .workshop-video-gallery__video {
+    max-height: none;
+}
+
+.ntpcsection .acsm-video-gallery__static-count {
+    margin-top: 0.75rem;
+}
+
+.ntpcsection .acsm-image-gallery--static {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ntpcsection .acsm-image-gallery__grid {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.ntpcsection .acsm-image-gallery__grid--1 {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.ntpcsection .acsm-image-gallery__grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-image-gallery__grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-image-gallery__grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ntpcsection .acsm-image-gallery--static .acsm-gallery-card {
+    min-height: 220px;
+}
+
+.ntpcsection .acsm-image-gallery__static-count {
+    margin-top: 0.75rem;
+}
+
+@media (max-width: 991.98px) {
+    .ntpcsection .acsm-video-gallery__grid--2,
+    .ntpcsection .acsm-video-gallery__grid--3,
+    .ntpcsection .acsm-video-gallery__grid--4,
+    .ntpcsection .acsm-image-gallery__grid--2,
+    .ntpcsection .acsm-image-gallery__grid--3,
+    .ntpcsection .acsm-image-gallery__grid--4 {
+        grid-template-columns: 1fr;
     }
 }
